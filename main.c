@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
             continue;
         }
         
-        int keypress;
+        int keypress = 0;
         switch (event->response_type) {
             case XCB_EXPOSE: {
                 xcb_expose_event_t *expose = event; 
@@ -84,8 +84,8 @@ int main(int argc, char *argv[])
 
             case XCB_KEY_RELEASE: {
                 xcb_key_press_event_t *keycode = event;
-                keypress = keyboard[keycode->detail];
-                KeyDown[keypress % 255] = 0;
+                int value = keyboard[keycode->detail];
+                KeyDown[value % 255] = 0;
                 break;
             }
 

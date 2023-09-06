@@ -2,16 +2,18 @@
 
 #define SPEED_PLAYER 400
 #define GRAVITY 200
+#define ASTEROIDS_SPEED 300
 
-typedef struct node {
-    xcb_rectangle_t shot;
-    struct node *next;
-} shot_t;
 
+// play state variables
 static xcb_gcontext_t gc;
+typedef struct node {
+    xcb_rectangle_t pos;
+    struct node *next;
+} obj;
+
+// player variables
 static int player_color = 0x000000ff;
-static int shot_color = 0x00ff0000;
-static shot_t *shots = NULL;
 static xcb_rectangle_t player = {
     .x = 0,
     .y = 0,
@@ -19,10 +21,23 @@ static xcb_rectangle_t player = {
     .height = 100
 };
 
+// shooting mechanic 
+static obj *shots = NULL;
+static int shot_color = 0x00ff0000;
 void shoot();
 void render_shots();
 void update_shots(double);
 void delete_shot();
+
+// asteroids
+static obj *asteroids = NULL;
+static int asteroids_color = 0x00939597;
+void spawn_asteroids();
+void update_asteroids(double);
+void render_asteroids();
+
+
+void collision(xcb_rectangle_t a, xcb_rectangle_t b);
 
 void play_state_load()
 {
@@ -57,7 +72,12 @@ void play_state_update(double dt, char KeyDown[], int keypress)
     player.y += (int) dy;
     player.x += (int) dx;
 
+    if (rand() % 10000 == 500) 
+        spawn_asteroids();
+
     update_shots(dt);
+    update_asteroids(dt);
+
         
     if (player.y < 0) 
         player.y = 0;
@@ -73,6 +93,7 @@ void play_state_update(double dt, char KeyDown[], int keypress)
 void play_state_render()
 {
     render_shots();
+    render_asteroids();
     xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &player_color);
     xcb_void_cookie_t cookie = xcb_poly_fill_rectangle(connection, 
                                                        window.id, 
@@ -81,13 +102,79 @@ void play_state_render()
     xcb_request_check(connection, cookie);
 }
 
+void collision(xcb_rectangle_t a, xcb_rectangle_t b) 
+{
+}
+
+
+void spawn_asteroids()
+{
+    obj *asteroid = malloc(sizeof(obj));
+
+    int size = (rand() % 100) + 50;
+    asteroid->pos.height = size; 
+    asteroid->pos.width = size;
+    asteroid->pos.x = rand() % window.width;
+    asteroid->pos.y = -asteroid->pos.height;
+    asteroid->next = NULL;
+
+    if (!asteroids) {
+        asteroids = asteroid;
+        return;
+    }
+
+    asteroid->next = asteroids; 
+    asteroids = asteroid;
+}
+
+void update_asteroids(double dt) 
+{
+    if (!asteroids) 
+        return;
+
+    for (obj *asteroid = asteroids, *back = NULL; asteroid; asteroid = asteroid->next) 
+    {
+        if (asteroid->pos.y > window.height) 
+        {
+            if (asteroids == asteroid) 
+            {
+                asteroids = asteroid->next;
+                free(asteroid);
+                return;
+            } 
+            back->next = asteroid->next; 
+            free(asteroid);
+            asteroid = back->next;
+            if (!asteroid) 
+                return;
+        }
+
+        asteroid->pos.y += ASTEROIDS_SPEED * dt; 
+        back = asteroid;
+    }
+}
+
+void render_asteroids()
+{
+    if (!asteroids) 
+        return;
+
+    xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &asteroids_color);
+    for (obj *asteroid = asteroids; asteroid ; asteroid = asteroid->next) 
+        xcb_poly_fill_rectangle(connection, 
+                                window.id, 
+                                gc, 1, 
+                                &asteroid->pos); 
+    xcb_flush(connection);
+}
+
 void shoot()
 {
-    shot_t *shot =  malloc(sizeof(shot_t));
-    shot->shot.x = player.x + (player.width / 2);
-    shot->shot.y = player.y;
-    shot->shot.width = 5;
-    shot->shot.height = 20;
+    obj *shot =  malloc(sizeof(obj));
+    shot->pos.x = player.x + (player.width / 2);
+    shot->pos.y = player.y;
+    shot->pos.width = 5;
+    shot->pos.height = 20;
     shot->next = NULL;
 
     if (!shots) {
@@ -104,9 +191,9 @@ void update_shots(double dt)
     if (!shots) 
         return;
     
-    for (shot_t *shot = shots, *back = NULL; shot ; shot = shot->next) 
+    for (obj *shot = shots, *back = NULL; shot ; shot = shot->next) 
     {
-        if (shot->shot.y < 0) 
+        if (shot->pos.y < 0) 
         {
             if (shots == shot) 
             {
@@ -121,7 +208,7 @@ void update_shots(double dt)
                 return;
         }
 
-        shot->shot.y -= GRAVITY * dt; 
+        shot->pos.y -= GRAVITY * dt; 
         back = shot;
     }
 }
@@ -132,10 +219,10 @@ void render_shots()
         return;
 
     xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &shot_color);
-    for (shot_t *shot = shots; shot != NULL; shot = shot->next) 
+    for (obj *shot = shots; shot != NULL; shot = shot->next) 
         xcb_poly_fill_rectangle(connection, 
                                 window.id, 
                                 gc, 1, 
-                                &shot->shot); 
+                                &shot->pos); 
     xcb_flush(connection);
 }
