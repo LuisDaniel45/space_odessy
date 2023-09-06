@@ -1,6 +1,6 @@
 #include "global.h"
 
-#define SPEED_PLAYER 20
+#define SPEED_PLAYER 400
 #define GRAVITY 200
 
 typedef struct node {
@@ -33,32 +33,30 @@ void play_state_load()
     player.y = window.height - player.height;
 }
 
-void play_state_update(double dt, int keypress)
+void play_state_update(double dt, char KeyDown[], int keypress)
 {
+    double dx = 0, dy = 0;
+    if (KeyDown[XK_j]) 
+        dy = SPEED_PLAYER * dt;
+    if (KeyDown[XK_k]) 
+        dy = -SPEED_PLAYER * dt;
+    if (KeyDown[XK_l]) 
+        dx = SPEED_PLAYER * dt;
+    if (KeyDown[XK_h]) 
+        dx = -SPEED_PLAYER * dt;
+    
     switch (keypress) {
         case 0:
-            player.y += (GRAVITY * dt);
+            dy += (GRAVITY * dt);
             break;
 
-        case XK_j:
-            player.y += SPEED_PLAYER;
-            break;
-
-        case XK_k:
-            player.y -= SPEED_PLAYER;
-            break;
-
-        case XK_l:
-            player.x += SPEED_PLAYER;
-            break;
-
-        case XK_h:
-            player.x -= SPEED_PLAYER;
-            break;
         case XK_space:
             shoot();
             break;
     }
+    player.y += (int) dy;
+    player.x += (int) dx;
+
     update_shots(dt);
         
     if (player.y < 0) 

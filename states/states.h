@@ -13,7 +13,7 @@ typedef struct {
     states_id id;
     void (*load)();
     void (*render)();
-    void (*update)(double, int);
+    void (*update)(double, char[], int);
 } state_t;
 
 static const int number_of_states = END_STATE + 1;

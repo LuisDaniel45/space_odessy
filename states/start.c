@@ -8,7 +8,7 @@ void start_state_load()
     font = font_init("fixed");
 }
 
-void start_state_update(double dt, int keypress)
+void start_state_update(double dt, char KeyDown[], int keypress)
 {
     if (keypress == XK_Return)
         change_state();

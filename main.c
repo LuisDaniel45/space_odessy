@@ -23,14 +23,15 @@ void change_state()
 
 void global_init();
 window_t window_init();
-int *map_keyboard(const xcb_setup_t* setup);
+int *map_keyboard(const xcb_setup_t* setup, char KeyDown[]);
 
 int main(int argc, char *argv[])
 {
     global_init();
 
     xcb_flush(connection);
-    int *keyboard = map_keyboard(xcb_get_setup(connection));
+    char KeyDown[255];
+    int *keyboard = map_keyboard(xcb_get_setup(connection), KeyDown);
 
     state_machine[cur_state].load();
 
@@ -53,12 +54,13 @@ int main(int argc, char *argv[])
         event = xcb_poll_for_event(connection);
         if (!event)
         {
-            state_machine[cur_state].update(dt, 0);
+            state_machine[cur_state].update(dt, KeyDown, 0);
             xcb_clear_area(connection, 0, window.id, 0, 0, window.width, window.height);
             state_machine[cur_state].render();
             continue;
         }
         
+        int keypress;
         switch (event->response_type) {
             case XCB_EXPOSE: {
                 xcb_expose_event_t *expose = event; 
@@ -73,13 +75,17 @@ int main(int argc, char *argv[])
 
             case XCB_KEY_PRESS: {
                 xcb_key_press_event_t *keycode = event;
-                int keypress = keyboard[keycode->detail];
+                keypress = keyboard[keycode->detail];
                 if (keypress == XK_q) 
                     goto exit;
+                KeyDown[keypress % 255] = 1;
+                break;
+            }
 
-                xcb_clear_area(connection, 0, window.id, 0, 0, window.width, window.height);
-                state_machine[cur_state].update(dt, keypress);
-                state_machine[cur_state].render();
+            case XCB_KEY_RELEASE: {
+                xcb_key_press_event_t *keycode = event;
+                keypress = keyboard[keycode->detail];
+                KeyDown[keypress % 255] = 0;
                 break;
             }
 
@@ -87,6 +93,9 @@ int main(int argc, char *argv[])
             default:
                 continue;
         }
+        xcb_clear_area(connection, 0, window.id, 0, 0, window.width, window.height);
+        state_machine[cur_state].update(dt, KeyDown, keypress);
+        state_machine[cur_state].render();
     }
 
 exit:
@@ -173,7 +182,7 @@ int print_screen(char *text, font_t font, int x, int y)
 }
 
 
-int *map_keyboard(const xcb_setup_t* setup)
+int *map_keyboard(const xcb_setup_t* setup, char KeyDown[])
 {
     xcb_get_keyboard_mapping_reply_t* keyboard_mapping = 
         xcb_get_keyboard_mapping_reply(connection,
@@ -185,8 +194,10 @@ int *map_keyboard(const xcb_setup_t* setup)
     xcb_keysym_t* keysyms  = (xcb_keysym_t*)(keyboard_mapping + 1);  
                                                                              
     int *keyboard = malloc(sizeof(int) * setup->max_keycode);
-    for (int i = setup->min_keycode; i < setup->max_keycode; i++) 
+    for (int i = setup->min_keycode; i < setup->max_keycode; i++) {
         keyboard[i] = keysyms[0 + (i - setup->min_keycode) * keyboard_mapping->keysyms_per_keycode];
+        KeyDown[keyboard[i] % 255] = 0;
+    }
 
     free(keyboard_mapping);
     return keyboard;
