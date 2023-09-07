@@ -1,8 +1,10 @@
 #include "global.h"
+#include <stdio.h>
 
 #define SPEED_PLAYER 400
 #define GRAVITY 200
-#define ASTEROIDS_SPEED 300
+#define SHOT_SPEED 1000 
+#define ASTEROIDS_SPEED 300 
 
 
 // play state variables
@@ -37,7 +39,7 @@ void update_asteroids(double);
 void render_asteroids();
 
 
-void collision(xcb_rectangle_t a, xcb_rectangle_t b);
+char collision(xcb_rectangle_t a, xcb_rectangle_t b);
 
 void play_state_load()
 {
@@ -72,7 +74,7 @@ void play_state_update(double dt, char KeyDown[], int keypress)
     player.y += (int) dy;
     player.x += (int) dx;
 
-    if (rand() % 10000 == 500) 
+    if (rand() % 9000 == 500)
         spawn_asteroids();
 
     update_shots(dt);
@@ -90,6 +92,14 @@ void play_state_update(double dt, char KeyDown[], int keypress)
         player.x = window.width - player.width;
 }
 
+char shot_collision(xcb_rectangle_t object)
+{
+    for (obj *shot = shots; shot; shot = shot->next) 
+        if (collision(shot->pos, object)) 
+            return 1;
+    return 0;    
+}
+
 void play_state_render()
 {
     render_shots();
@@ -102,10 +112,13 @@ void play_state_render()
     xcb_request_check(connection, cookie);
 }
 
-void collision(xcb_rectangle_t a, xcb_rectangle_t b) 
+char collision(xcb_rectangle_t a, xcb_rectangle_t b) 
 {
+    return (b.x < a.x + a.width &&
+            b.x + b.width > a.x) && 
+            (b.y < a.y + a.height && 
+            b.y + b.height > a.y);
 }
-
 
 void spawn_asteroids()
 {
@@ -134,7 +147,7 @@ void update_asteroids(double dt)
 
     for (obj *asteroid = asteroids, *back = NULL; asteroid; asteroid = asteroid->next) 
     {
-        if (asteroid->pos.y > window.height) 
+        if (asteroid->pos.y > window.height || shot_collision(asteroid->pos)) 
         {
             if (asteroids == asteroid) 
             {
@@ -142,14 +155,15 @@ void update_asteroids(double dt)
                 free(asteroid);
                 return;
             } 
-            back->next = asteroid->next; 
+            back->next = asteroid->next;
             free(asteroid);
             asteroid = back->next;
-            if (!asteroid) 
+            if (!asteroid)
                 return;
         }
 
-        asteroid->pos.y += ASTEROIDS_SPEED * dt; 
+        double dy = ASTEROIDS_SPEED * dt;
+        asteroid->pos.y += (int) dy;
         back = asteroid;
     }
 }
@@ -208,7 +222,8 @@ void update_shots(double dt)
                 return;
         }
 
-        shot->pos.y -= GRAVITY * dt; 
+        double dy = SHOT_SPEED * dt;
+        shot->pos.y -= (int) dy; 
         back = shot;
     }
 }
