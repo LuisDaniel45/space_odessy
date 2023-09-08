@@ -29,7 +29,7 @@ static int shot_color = 0x00ff0000;
 void shoot();
 void render_shots();
 void update_shots(double);
-void delete_shot();
+void free_shots();
 
 // asteroids
 static obj *asteroids = NULL;
@@ -37,7 +37,7 @@ static int asteroids_color = 0x00939597;
 void spawn_asteroids();
 void update_asteroids(double);
 void render_asteroids();
-
+void free_asteroids();
 
 char collision(xcb_rectangle_t a, xcb_rectangle_t b);
 
@@ -147,7 +147,9 @@ void update_asteroids(double dt)
 
     for (obj *asteroid = asteroids, *back = NULL; asteroid; asteroid = asteroid->next) 
     {
-        if (asteroid->pos.y > window.height || shot_collision(asteroid->pos)) 
+        if (collision(asteroid->pos, player)) 
+            change_state(STATE_GAME_OVER);
+        else if (asteroid->pos.y > window.height || shot_collision(asteroid->pos))
         {
             if (asteroids == asteroid) 
             {

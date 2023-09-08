@@ -11,11 +11,11 @@
 #define BORDERW 20
 #define SECONDS 1000000
 
-void change_state()
+void change_state(int state)
 {
-    if (cur_state == END_STATE) 
+    if (state >= number_of_states) 
         return;
-    cur_state++;
+    cur_state = state;
     state_machine[cur_state].load();
     xcb_clear_area(connection, 0, window.id, 0, 0, window.width, window.height);
 } 
@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
     double dt;
     struct timeval start, end;
     gettimeofday(&start, NULL);
+    int counter = 0;
 
     xcb_generic_event_t *event;
     while (1) 
@@ -68,9 +69,7 @@ int main(int argc, char *argv[])
                 window.y = expose->y;
                 window.width = expose->width;
                 window.height = expose->height;
-
-                state_machine[cur_state].render();
-                break;
+                continue;
             }
 
             case XCB_KEY_PRESS: {
@@ -120,7 +119,7 @@ window_t window_init()
         .y = 0,
         .width  = 200, 
         .height = 200, 
-        .title  = "Manga",
+        .title  = "Space Odessy",
         .id     = xcb_generate_id(connection),
         .gc     = xcb_generate_id(connection)
     };

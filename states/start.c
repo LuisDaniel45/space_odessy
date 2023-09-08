@@ -1,7 +1,7 @@
 #include "global.h"
 #include <stdio.h>
 
-font_t font;
+static font_t font;
 
 void start_state_load()
 {
@@ -11,7 +11,7 @@ void start_state_load()
 void start_state_update(double dt, char KeyDown[], int keypress)
 {
     if (keypress == XK_Return)
-        change_state();
+        change_state(STATE_PLAY);
 }
 
 void start_state_render()
