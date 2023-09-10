@@ -1,5 +1,7 @@
 PROG=space_odessy
-SRC=main.c 
+SRC=main.c \
+	states/start.c states/play.c states/game_over.c \
+	states/objects/shots.c states/objects/asteroids.c
 
 CC=gcc
 

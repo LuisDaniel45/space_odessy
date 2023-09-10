@@ -1,21 +1,23 @@
-#include "global.h"
-#include <stdio.h>
+#include "states.h"
+#include <stdlib.h>
 
-static font_t font;
-
-void start_state_load()
+typedef font_t self_t;
+void start_state_load(x11_t xorg)
 {
-    font = font_init("fixed");
+    state_machine[cur_state].self = malloc(sizeof(self_t));
+    *((self_t*)state_machine[cur_state].self) = font_init(xorg, "fixed");
 }
 
-void start_state_update(double dt, char KeyDown[], int keypress)
+void start_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
 {
     if (keypress == XK_Return)
-        change_state(STATE_PLAY);
+        change_state(xorg);
+
 }
 
-void start_state_render()
+void start_state_render(x11_t xorg)
 {
-    print_screen("Space Odessy", font, window.width / 2, window.height / 3);
-    print_screen("Press Enter to play", font, (window.width / 2) - 20, window.height / 2);
+    self_t *self = state_machine[cur_state].self; 
+    print_screen(xorg, "Space Odessy", *self, xorg.window.width / 2, xorg.window.height / 3);
+    print_screen(xorg, "Press Enter to play", *self, (xorg.window.width / 2) - 20, xorg.window.height / 2);
 }

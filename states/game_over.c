@@ -1,21 +1,22 @@
-#include "global.h"
+#include "states.h"
 
-static font_t font;
-void game_over_state_load()
+typedef font_t self_t;
+void game_over_state_load(x11_t xorg)
 {
-    font = font_init("fixed");
+    state_machine[cur_state].self = malloc(sizeof(self_t));
+    *(self_t*)state_machine[cur_state].self = font_init(xorg, "fixed");
 
 }
     
-void game_over_state_update(double dt, char *KeyDown, int keypress)
+void game_over_state_update(x11_t xorg, double dt, char *KeyDown, int keypress)
 {
     if (keypress == XK_r) 
-        change_state(STATE_START);
-    
+        return change_state(xorg);
 }
 
-void game_over_state_render()
+void game_over_state_render(x11_t xorg)
 {
-    print_screen("Game Over", font, window.width / 2, window.height / 3);
-    print_screen("Press R to Restart", font, window.width / 2 - 10, window.height / 2);
+    self_t *self  = state_machine[cur_state].self;
+    print_screen(xorg, "Game Over", *self, xorg.window.width / 2, xorg.window.height / 3);
+    print_screen(xorg, "Press R to Restart", *self, xorg.window.width / 2 - 10, xorg.window.height / 2);
 }
