@@ -7,12 +7,12 @@ typedef struct node {
 } obj;
 
 // shooting mechanics 
-#define SHOT_SPEED 1000 
+#define SHOT_SPEED 400 
 #define SHOT_COLOR 0x00ff0000
 void shoot(obj **shots, xcb_rectangle_t);
 void update_shots(obj**, double);
 void render_shots(obj*, xcb_gcontext_t,  x11_t);
-char shot_collision(obj *, xcb_rectangle_t );
+char shot_collision(obj*, xcb_rectangle_t );
 
 // asteroids mechanics 
 #define ASTEROIDS_SPEED 300 

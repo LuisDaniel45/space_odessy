@@ -1,9 +1,12 @@
 #include "states.h" 
 #include "objects/objects.h"
+#include <stdio.h>
+#include <math.h>
 
-#define PLAYER_SPEED 400
-#define GRAVITY 200
+#define PLAYER_SPEED 100 
 #define PLAYER_COLOR 0x000000ff
+
+#define GRAVITY 50 
 
 typedef struct {
     xcb_gcontext_t gc;
@@ -21,10 +24,10 @@ void play_state_load(x11_t xorg)
     self->gc = xcb_generate_id(xorg.connection);
     xcb_create_gc(xorg.connection, self->gc, xorg.window.id, 0, NULL);
 
-    self->player.x = xorg.window.width / 2;
-    self->player.y = xorg.window.height - self->player.height;
     self->player.width = 100;
     self->player.height= 100;
+    self->player.x = xorg.window.width / 2;
+    self->player.y = xorg.window.height - self->player.height;
     self->shots = NULL;
     self->asteroids = NULL;
 }
@@ -35,26 +38,26 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
     double dx = 0, dy = 0;
     if (KeyDown[XK_j]) 
         dy = PLAYER_SPEED * dt;
-    if (KeyDown[XK_k]) 
+    else if (KeyDown[XK_k]) 
         dy = -PLAYER_SPEED * dt;
     if (KeyDown[XK_l]) 
         dx = PLAYER_SPEED * dt;
-    if (KeyDown[XK_h]) 
+    else if (KeyDown[XK_h]) 
         dx = -PLAYER_SPEED * dt;
     
     switch (keypress) {
         case 0:
-            dy += (GRAVITY * dt);
+            dy += GRAVITY * dt;
             break;
 
         case XK_space:
             shoot(&self->shots, self->player);
             break;
     }
-    self->player.y += (int) dy;
-    self->player.x += (int) dx;
+    self->player.y = (int) round((double) self->player.y  + dy);
+    self->player.x = (int) round((double) self->player.x + dx);
 
-    if (rand() % 9000 == 500)
+    if (rand() % 100 == 0)
         spawn_asteroids(&self->asteroids, xorg.window);
 
     update_shots(&self->shots, dt);

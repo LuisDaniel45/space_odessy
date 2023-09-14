@@ -1,7 +1,5 @@
-#include <iso646.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
@@ -10,6 +8,7 @@
 #include "states/states.h"
 
 #define BORDERW 20
+
 #define SECONDS 1000000
 
 void change_state(x11_t xorg)
@@ -42,64 +41,73 @@ int main(int argc, char *argv[])
 
     state_machine[cur_state].load(xorg);
 
-    double dt;
+    double dt = 100.0 / SECONDS;
     struct timeval start, end;
     gettimeofday(&start, NULL);
+
+    double time;
     int counter = 0;
+
+    const int max_updates = 1; 
+    const long draw_time = SECONDS / 60;
 
     xcb_generic_event_t *event;
     while (1) 
     {
-        gettimeofday(&end, NULL);
-        if (start.tv_usec < end.tv_usec) 
-            dt = (double) ((end.tv_sec - start.tv_sec) +
-                 (end.tv_usec - start.tv_usec)) / SECONDS;
-        else
-            dt = 1.0 / SECONDS;
-
-        gettimeofday(&start, NULL);
-
-        event = xcb_poll_for_event(xorg.connection);
-        if (!event)
+        if (counter > max_updates) 
         {
-            state_machine[cur_state].update(xorg, dt, KeyDown, 0);
+            dt = (double) time / SECONDS;
+            if (draw_time > time) 
+                usleep(draw_time - time);
+
             xcb_clear_area(xorg.connection, 0, xorg.window.id, 0, 0, xorg.window.width, xorg.window.height);
             state_machine[cur_state].render(xorg);
-            continue;
+
+            counter = 0;
+            time = 0;
         }
-        
+
+        gettimeofday(&end, NULL);
+
+        time += (((end.tv_sec - start.tv_sec) * SECONDS) +
+                 (end.tv_usec - start.tv_usec));
+
+        start = end;
+
         int keypress = 0;
-        switch (event->response_type) {
-            case XCB_EXPOSE: {
-                xcb_expose_event_t *expose = event; 
-                xorg.window.x = expose->x;
-                xorg.window.y = expose->y;
-                xorg.window.width = expose->width;
-                xorg.window.height = expose->height;
-                continue;
+        while ((event = xcb_poll_for_event(xorg.connection))) 
+        {
+            switch (event->response_type) {
+                case XCB_EXPOSE: {
+                    xcb_expose_event_t *expose = event; 
+                    xorg.window.x = expose->x;
+                    xorg.window.y = expose->y;
+                    xorg.window.width = expose->width;
+                    xorg.window.height = expose->height;
+                    continue;
+                }
+
+                case XCB_KEY_PRESS: {
+                    xcb_key_press_event_t *keycode = event;
+                    keypress = keyboard[keycode->detail];
+                    if (keypress == XK_q) 
+                        goto exit;
+                    
+                    KeyDown[keypress % 255] = 1;
+                    break;
+                }
+
+                case XCB_KEY_RELEASE: {
+                    xcb_key_press_event_t *keycode = event;
+                    int value = keyboard[keycode->detail];
+                    KeyDown[value % 255] = 0;
+                    break;
+                }
             }
-
-            case XCB_KEY_PRESS: {
-                xcb_key_press_event_t *keycode = event;
-                keypress = keyboard[keycode->detail];
-                if (keypress == XK_q) 
-                    goto exit;
-                KeyDown[keypress % 255] = 1;
-                break;
-            }
-
-            case XCB_KEY_RELEASE: {
-                xcb_key_press_event_t *keycode = event;
-                int value = keyboard[keycode->detail];
-                KeyDown[value % 255] = 0;
-                break;
-            }
-
-
-            default:
-                continue;
         }
+
         state_machine[cur_state].update(xorg, dt, KeyDown, keypress);
+        counter++;
     }
 
 exit:
@@ -135,8 +143,8 @@ window_t window_init(x11_t xorg)
     // set window config
     int mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     int values[] = {xorg.screen->black_pixel, XCB_EVENT_MASK_KEY_RELEASE | 
-                                         XCB_EVENT_MASK_KEY_PRESS   | 
-                                         XCB_EVENT_MASK_EXPOSURE    };
+                                              XCB_EVENT_MASK_KEY_PRESS   | 
+                                              XCB_EVENT_MASK_EXPOSURE    };
     // create window 
     xcb_create_window(xorg.connection,                       // connection  
                       xorg.screen->root_depth,               // window depth 

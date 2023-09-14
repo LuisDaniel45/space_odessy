@@ -5,7 +5,7 @@ SRC=main.c \
 
 CC=gcc
 
-LIBS=-lxcb
+LIBS=-lxcb -lm
 
 
 ${PROG}: ${SRC} states

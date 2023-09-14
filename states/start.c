@@ -11,8 +11,7 @@ void start_state_load(x11_t xorg)
 void start_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
 {
     if (keypress == XK_Return)
-        change_state(xorg);
-
+        return change_state(xorg);
 }
 
 void start_state_render(x11_t xorg)
