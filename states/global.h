@@ -6,6 +6,7 @@
 #include <string.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
+#include <xcb/xcb_image.h>
 
 typedef struct {
     int x;

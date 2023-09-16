@@ -1,12 +1,12 @@
 PROG=space_odessy
-SRC=main.c \
-	states/start.c states/play.c states/game_over.c \
-	states/objects/shots.c states/objects/asteroids.c
+
+STATES=states/start.c states/play.c states/game_over.c
+OBJECTS=states/objects/shots.c states/objects/asteroids.c
+SRC=main.c $(STATES) $(OBJECTS)
 
 CC=gcc
 
-LIBS=-lxcb -lm
-
+LIBS=-lxcb -lm -lxcb-image
 
 ${PROG}: ${SRC} states
 	${CC} -o $@ ${SRC} ${LIBS}

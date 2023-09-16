@@ -8,6 +8,8 @@
 #include "states/states.h"
 
 #define BORDERW 20
+#define GAME_WIDTH 300 
+#define GAME_HEIGTH 1200 
 
 #define SECONDS 1000000
 
@@ -41,15 +43,13 @@ int main(int argc, char *argv[])
 
     state_machine[cur_state].load(xorg);
 
-    double dt = 100.0 / SECONDS;
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-
     double time;
     int counter = 0;
-
+    double dt = 100.0 / SECONDS;
     const int max_updates = 1; 
-    const long draw_time = SECONDS / 60;
+    const long time_per_frame = SECONDS / 60;
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
 
     xcb_generic_event_t *event;
     while (1) 
@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
         if (counter > max_updates) 
         {
             dt = (double) time / SECONDS;
-            if (draw_time > time) 
-                usleep(draw_time - time);
+            if (time_per_frame > time) 
+                usleep(time_per_frame - time);
 
             xcb_clear_area(xorg.connection, 0, xorg.window.id, 0, 0, xorg.window.width, xorg.window.height);
             state_machine[cur_state].render(xorg);
@@ -107,8 +107,7 @@ int main(int argc, char *argv[])
         }
 
         state_machine[cur_state].update(xorg, dt, KeyDown, keypress);
-        counter++;
-    }
+        counter++; }
 
 exit:
     xcb_destroy_window(xorg.connection, xorg.window.id);

@@ -4,11 +4,12 @@
 
 char shot_collision(obj *shots, xcb_rectangle_t object)
 {
-    for (obj *shot = shots; shot; shot = shot->next) 
+    for (obj *shot = shots; shot; shot = shot->next) {
         if (collision(shot->pos, object)) {
             shot->pos.y = -shot->pos.height;
             return 1;
         }
+    }
     return 0;    
 }
 
