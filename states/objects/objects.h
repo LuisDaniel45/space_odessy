@@ -8,7 +8,7 @@ typedef struct {
 } entity_t;
 
 typedef struct node {
-    xcb_rectangle_t pos;
+    entity_t entity;
     struct node *next;
 } obj;
 
@@ -23,9 +23,12 @@ char shot_collision(obj*, xcb_rectangle_t );
 // asteroids mechanics 
 #define ASTEROIDS_SPEED 300 
 #define ASTEROIDS_COLOR  0x00939597
-void spawn_asteroids(obj**, window_t);
+void load_asteroids(x11_t);
+void spawn_asteroids(x11_t, obj**, window_t);
 char update_asteroids(obj **, obj *, xcb_rectangle_t, x11_t, double);
 void render_asteroids(obj*, xcb_gcontext_t, x11_t);
 
 char collision(xcb_rectangle_t a, xcb_rectangle_t b);
+xcb_image_t *load_image(char *file, int width, int height, x11_t xorg);
+xcb_image_t *resize_image(xcb_image_t *image, int width, int height);
 

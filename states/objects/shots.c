@@ -5,8 +5,8 @@
 char shot_collision(obj *shots, xcb_rectangle_t object)
 {
     for (obj *shot = shots; shot; shot = shot->next) {
-        if (collision(shot->pos, object)) {
-            shot->pos.y = -shot->pos.height;
+        if (collision(shot->entity.pos, object)) {
+            shot->entity.pos.y = -shot->entity.pos.height;
             return 1;
         }
     }
@@ -16,10 +16,10 @@ char shot_collision(obj *shots, xcb_rectangle_t object)
 void shoot(obj **shots, xcb_rectangle_t player)
 {
     obj *shot =  malloc(sizeof(obj));
-    shot->pos.x = player.x + (player.width / 2);
-    shot->pos.y = player.y;
-    shot->pos.width = 5;
-    shot->pos.height = 20;
+    shot->entity.pos.x = player.x + (player.width / 2);
+    shot->entity.pos.y = player.y;
+    shot->entity.pos.width = 5;
+    shot->entity.pos.height = 20;
     shot->next = NULL;
 
     if (!*shots) {
@@ -38,7 +38,7 @@ void update_shots(obj **shots, double dt)
     
     for (obj *shot = *shots, *back = NULL; shot ; shot = shot->next) 
     {
-        if (shot->pos.y < 0) 
+        if (shot->entity.pos.y < 0) 
         {
             if (*shots == shot) 
             {
@@ -54,7 +54,7 @@ void update_shots(obj **shots, double dt)
         }
 
         double dy = SHOT_SPEED * dt;
-        shot->pos.y -= (int) dy; 
+        shot->entity.pos.y -= (int) dy; 
         back = shot;
     }
 }
@@ -70,6 +70,6 @@ void render_shots(obj *shots, xcb_gcontext_t gc, x11_t xorg)
         xcb_poly_fill_rectangle(xorg.connection, 
                                 xorg.window.id, 
                                 gc, 1, 
-                                &shot->pos); 
+                                &shot->entity.pos); 
     xcb_flush(xorg.connection);
 }

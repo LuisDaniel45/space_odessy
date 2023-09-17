@@ -18,7 +18,6 @@
 
 #define GRAVITY 50 
 
-
 typedef struct {
     xcb_gcontext_t gc;
     entity_t player;
@@ -30,41 +29,19 @@ void free_obj(obj*);
 
 void play_state_load(x11_t xorg)
 {
+    load_asteroids(xorg);
     state_machine[cur_state].self = malloc(sizeof(self_t)); 
     self_t *self = state_machine[cur_state].self;
     self->gc = xcb_generate_id(xorg.connection);
     xcb_create_gc(xorg.connection, self->gc, xorg.window.id, 0, NULL);
 
-    /** int channels; */
-    /** stbir_resize_uint8(player_skin, width, height, channels, self->player.skin, self->player.width, self->player.height, channels, channels); */
     self->player.pos.width = 100;
     self->player.pos.height= 170;
     self->player.pos.x = xorg.window.width / 2;
     self->player.pos.y = xorg.window.height - self->player.pos.height;
     self->player.x_offset = 50;
     self->player.y_offset = 20;
-
-    int channels, size, width, height, r_width = 200, r_height = 200; 
-    unsigned char *data = stbi_load("spaceship.png", &width, &height, &channels, STBI_rgb_alpha);
-    for (int i = 0; i < width * height; i++) {
-        unsigned char *pixel = data + (i * channels);
-        char tmp = *pixel;
-        *pixel  = pixel[2];
-        pixel[2] = tmp;
-    }
-
-    size = r_width * r_height * channels;
-
-    unsigned char *resized_data = malloc(size);
-    stbir_filter filter = STBIR_FILTER_BOX;
-    stbir_resize(data,
-                 width, height, 0,
-                 resized_data, r_width, r_height, 0,
-                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
-                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
-    stbi_image_free(data);
-
-    self->player.skin = xcb_image_create_native(xorg.connection, r_width, r_height, XCB_IMAGE_FORMAT_Z_PIXMAP, xorg.screen->root_depth, resized_data, size, resized_data);
+    self->player.skin = load_image("spaceship.png", 200, 200, xorg);
 
     self->shots = NULL;
     self->asteroids = NULL;
@@ -96,7 +73,7 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
     self->player.pos.x = (int) round((double) self->player.pos.x + dx);
 
     if (rand() % 100 == 0)
-        spawn_asteroids(&self->asteroids, xorg.window);
+        spawn_asteroids(xorg, &self->asteroids, xorg.window);
 
     update_shots(&self->shots, dt);
 
@@ -165,3 +142,61 @@ void free_obj(obj *objects)
     }
 }
 
+xcb_image_t *resize_image(xcb_image_t *image, int width, int height)
+{
+    int size = width * height * 4;
+    unsigned char *resized_data = malloc(size);
+    stbir_filter filter = STBIR_FILTER_BOX;
+    stbir_resize(image->data,
+                 image->width, image->height, 0,
+                 resized_data, width, height, 0,
+                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
+
+    xcb_image_t *image_out = malloc(sizeof(xcb_image_t));
+    *image_out = *image;
+    image_out->size = size;
+    image_out->width = width;
+    image_out->height = height;
+    image_out->data = resized_data;
+
+    return image_out;
+}
+
+xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
+{
+    int channels, size, w, h;
+    unsigned char *data = stbi_load(file, &w, &h, &channels, STBI_rgb_alpha);
+    for (int i = 0; i < w * h; i++) {
+        unsigned char *pixel = data + (i * channels);
+        char tmp = *pixel;
+        *pixel  = pixel[2];
+        pixel[2] = tmp;
+    }
+
+    if (!width || !height) 
+        return xcb_image_create_native(xorg.connection, 
+                                       w, h, 
+                                       XCB_IMAGE_FORMAT_Z_PIXMAP, 
+                                       xorg.screen->root_depth, 
+                                       data, size, data);
+        
+    
+
+    size = width * height * channels;
+
+    unsigned char *resized_data = malloc(size);
+    stbir_filter filter = STBIR_FILTER_BOX;
+    stbir_resize(data,
+                 w, h, 0,
+                 resized_data, width, height, 0,
+                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
+    stbi_image_free(data);
+
+    return xcb_image_create_native(xorg.connection, 
+                                   width, height, 
+                                   XCB_IMAGE_FORMAT_Z_PIXMAP, 
+                                   xorg.screen->root_depth, 
+                                   resized_data, size, resized_data);
+}
