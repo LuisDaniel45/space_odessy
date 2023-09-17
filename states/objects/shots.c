@@ -68,7 +68,7 @@ void render_shots(obj *shots, xcb_gcontext_t gc, x11_t xorg)
     xcb_change_gc(xorg.connection, gc, XCB_GC_FOREGROUND, &shot_color);
     for (obj *shot = shots; shot != NULL; shot = shot->next) 
         xcb_poly_fill_rectangle(xorg.connection, 
-                                xorg.window.id, 
+                                xorg.window.pixmap, 
                                 gc, 1, 
                                 &shot->entity.pos); 
     xcb_flush(xorg.connection);

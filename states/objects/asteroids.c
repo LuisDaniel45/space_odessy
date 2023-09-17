@@ -73,7 +73,7 @@ void render_asteroids(obj *asteroids, xcb_gcontext_t gc, x11_t xorg)
     for (obj *asteroid = asteroids; asteroid ; asteroid = asteroid->next) 
     {
         xcb_image_put(xorg.connection, 
-                      xorg.window.id, gc, 
+                      xorg.window.pixmap, gc, 
                       asteroid->entity.skin, 
                       asteroid->entity.pos.x - asteroid->entity.x_offset, 
                       asteroid->entity.pos.y - asteroid->entity.y_offset, 0);

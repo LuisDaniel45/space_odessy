@@ -1142,7 +1142,7 @@ static void *stbi__load_main(stbi__context *s, int *x, int *y, int *comp, int re
    // test the formats with a very explicit header first (at least a FOURCC
    // or distinctive magic number first)
    #ifndef STBI_NO_PNG
-   if (stbi__png_test(s))  {printf("png\n");return stbi__png_load(s,x,y,comp,req_comp, ri);}
+   if (stbi__png_test(s))  {return stbi__png_load(s,x,y,comp,req_comp, ri);}
    #endif
    #ifndef STBI_NO_BMP
    if (stbi__bmp_test(s))  return stbi__bmp_load(s,x,y,comp,req_comp, ri);
@@ -1163,7 +1163,7 @@ static void *stbi__load_main(stbi__context *s, int *x, int *y, int *comp, int re
    // bytes matching expectations; these are prone to false positives, so
    // try them later
    #ifndef STBI_NO_JPEG
-   if (stbi__jpeg_test(s)) {printf("jpeg\n");return stbi__jpeg_load(s,x,y,comp,req_comp, ri);}
+   if (stbi__jpeg_test(s)) {return stbi__jpeg_load(s,x,y,comp,req_comp, ri);}
    #endif
    #ifndef STBI_NO_PNM
    if (stbi__pnm_test(s))  return stbi__pnm_load(s,x,y,comp,req_comp, ri);
@@ -5261,7 +5261,6 @@ static int stbi__parse_png_file(stbi__png *z, int scan, int req_comp)
 
 static void *stbi__do_png(stbi__png *p, int *x, int *y, int *n, int req_comp, stbi__result_info *ri)
 {
-    printf("do_png\n");
    void *result=NULL;
    if (req_comp < 0 || req_comp > 4) return stbi__errpuc("bad req_comp", "Internal error");
    if (stbi__parse_png_file(p, STBI__SCAN_load, req_comp)) {

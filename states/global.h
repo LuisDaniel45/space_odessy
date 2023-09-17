@@ -15,6 +15,8 @@ typedef struct {
     int height;
     char *title;
     xcb_window_t id;
+    xcb_rectangle_t back_buffer;
+    xcb_pixmap_t pixmap;
     xcb_gcontext_t gc;
 } window_t;
 

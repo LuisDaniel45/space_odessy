@@ -1,7 +1,9 @@
+#include <iso646.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
 #include "states/global.h"
@@ -13,25 +15,12 @@
 
 #define SECONDS 1000000
 
-void change_state(x11_t xorg)
-{
-    free(state_machine[cur_state].self);
-
-    cur_state++;
-    if (cur_state >= number_of_states) 
-        cur_state = 0;
-
-    state_machine[cur_state].load(xorg);
-    xcb_clear_area(xorg.connection, 0, 
-                   xorg.window.id, 0, 0, 
-                   xorg.window.width, 
-                   xorg.window.height);
-} 
-
 
 x11_t global_init();
 window_t window_init(x11_t);
+void change_state(x11_t xorg);
 int *map_keyboard(x11_t xorg, char KeyDown[]);
+void resize_pixmap(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height);
 
 int main(int argc, char *argv[])
 {
@@ -60,8 +49,9 @@ int main(int argc, char *argv[])
             if (time_per_frame > time) 
                 usleep(time_per_frame - time);
 
-            xcb_clear_area(xorg.connection, 0, xorg.window.id, 0, 0, xorg.window.width, xorg.window.height);
+            xcb_poly_fill_rectangle(xorg.connection, xorg.window.pixmap, xorg.window.gc, 1, &xorg.window.back_buffer);
             state_machine[cur_state].render(xorg);
+            xcb_copy_area(xorg.connection, xorg.window.pixmap, xorg.window.id, xorg.window.gc, 0, 0, 0, 0, xorg.window.width, xorg.window.width);
 
             counter = 0;
             time = 0;
@@ -84,6 +74,10 @@ int main(int argc, char *argv[])
                     xorg.window.y = expose->y;
                     xorg.window.width = expose->width;
                     xorg.window.height = expose->height;
+
+                    xorg.window.back_buffer.width = expose->width;
+                    xorg.window.back_buffer.height = expose->height;
+                    resize_pixmap(xorg, &xorg.window.pixmap, expose->width, expose->height);
                     continue;
                 }
 
@@ -136,27 +130,41 @@ window_t window_init(x11_t xorg)
         .height = 200, 
         .title  = "Space Odessy",
         .id     = xcb_generate_id(xorg.connection),
-        .gc     = xcb_generate_id(xorg.connection)
+        .gc     = xcb_generate_id(xorg.connection),
+        .pixmap = xcb_generate_id(xorg.connection),
+        .back_buffer = {
+            .x = 0,
+            .y = 0,
+            .width = 200,
+            .height = 200,
+        }
     };
 
     // set window config
     int mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    int values[] = {xorg.screen->black_pixel, XCB_EVENT_MASK_KEY_RELEASE | 
+    int values[] = {xorg.screen->white_pixel, XCB_EVENT_MASK_KEY_RELEASE | 
                                               XCB_EVENT_MASK_KEY_PRESS   | 
                                               XCB_EVENT_MASK_EXPOSURE    };
     // create window 
-    xcb_create_window(xorg.connection,                       // connection  
-                      xorg.screen->root_depth,               // window depth 
+    xcb_create_window(xorg.connection,                  // connection  
+                      xorg.screen->root_depth,          // window depth 
                       window.id,                        // window id 
-                      xorg.screen->root,                     // screen
+                      xorg.screen->root,                // screen
                       window.x, window.y,               // cordinates of top left corner of window
                       window.width, window.width,       // size of window
                       BORDERW,                          // border width of window
                       XCB_WINDOW_CLASS_INPUT_OUTPUT,    // what the window receives 
-                      xorg.screen->root_visual,              // idk  
+                      xorg.screen->root_visual,         // idk  
                       mask, values);                    // the events that program handles 
 
     xcb_create_gc(xorg.connection, window.gc, window.id, 0, NULL);
+    
+    xcb_create_pixmap(xorg.connection, 
+                      xorg.screen->root_depth, 
+                      window.pixmap, window.id, 
+                      window.width, window.height);
+    xcb_poly_fill_rectangle(xorg.connection, window.pixmap, window.gc, 1, &window.back_buffer);
+
 
     // set window title
     xcb_change_property(xorg.connection, 
@@ -191,10 +199,16 @@ font_t font_init(x11_t xorg, char *name)
 int print_screen(x11_t xorg, char *text, font_t font, int x, int y)
 {
     xcb_void_cookie_t testCookie = xcb_image_text_8_checked(xorg.connection, strlen(text), 
-                                                            xorg.window.id, font.gc, x, y, text);
+                                                            xorg.window.pixmap, font.gc, x, y, text);
     return xcb_request_check(xorg.connection, testCookie) ? true : false;
 }
 
+void resize_pixmap(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height)
+{
+    xcb_free_pixmap(xorg.connection, *pixmap);
+    *pixmap = xcb_generate_id(xorg.connection);
+    xcb_create_pixmap(xorg.connection, xorg.screen->root_depth, *pixmap, xorg.window.id, width, height);
+}
 
 int *map_keyboard(x11_t xorg, char KeyDown[])
 {
@@ -216,3 +230,14 @@ int *map_keyboard(x11_t xorg, char KeyDown[])
     free(keyboard_mapping);
     return keyboard;
 }     
+
+void change_state(x11_t xorg)
+{
+    free(state_machine[cur_state].self);
+
+    cur_state++;
+    if (cur_state >= number_of_states) 
+        cur_state = 0;
+
+    state_machine[cur_state].load(xorg);
+} 

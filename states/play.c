@@ -32,6 +32,7 @@ void play_state_load(x11_t xorg)
     load_asteroids(xorg);
     state_machine[cur_state].self = malloc(sizeof(self_t)); 
     self_t *self = state_machine[cur_state].self;
+
     self->gc = xcb_generate_id(xorg.connection);
     xcb_create_gc(xorg.connection, self->gc, xorg.window.id, 0, NULL);
 
@@ -104,7 +105,7 @@ void play_state_render(x11_t xorg)
     render_shots(self->shots, self->gc, xorg);
 
     xcb_void_cookie_t cookie = xcb_image_put(xorg.connection, 
-                                             xorg.window.id, 
+                                             xorg.window.pixmap, 
                                              self->gc, self->player.skin, 
                                              self->player.pos.x - self->player.x_offset, 
                                              self->player.pos.y - self->player.y_offset, 0);
@@ -177,7 +178,7 @@ xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
     if (!width || !height) 
         return xcb_image_create_native(xorg.connection, 
                                        w, h, 
-                                       XCB_IMAGE_FORMAT_Z_PIXMAP, 
+                                       XCB_IMAGE_FORMAT_Z_PIXMAP,
                                        xorg.screen->root_depth, 
                                        data, size, data);
         
