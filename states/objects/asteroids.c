@@ -1,24 +1,30 @@
 #include "objects.h"
+#include <stdlib.h>
+#include <xcb/xproto.h>
 
-static xcb_image_t *skin;
+static xcb_image_t *skin[MAX_SKINS];
 
 void load_asteroids(x11_t xorg)
 {
-    skin = load_image("asteroids.png", 0, 0, xorg);
+    skin[0] = load_image("asteroids.png", 0, 0, xorg);
+    for (int i = 1; i < MAX_SKINS; i++) 
+        skin[i] = resize_image(skin[0], skin[i - 1]->width + 10, skin[i - 1]->height + 10);
 }
 
 void spawn_asteroids(x11_t xorg, obj **asteroids, window_t window)
 {
     obj *asteroid = malloc(sizeof(obj));
 
-    int size = (rand() % 100) + 50;
-    asteroid->entity.pos.height = size; 
-    asteroid->entity.pos.width = size;
-    asteroid->entity.pos.x = rand() % window.width;
+    xcb_image_t *ptr_skin  = skin[rand() % MAX_SKINS]; 
+    double pw = (ptr_skin->height * 0.30);
+    double ph = (ptr_skin->width * 0.30);  
+    asteroid->entity.pos.height = (int) ptr_skin->height - ph;
+    asteroid->entity.pos.width = (int) ptr_skin->width - pw;
+    asteroid->entity.pos.x = rand() % (VW - asteroid->entity.pos.width);
     asteroid->entity.pos.y = -asteroid->entity.pos.height;
-    asteroid->entity.skin = resize_image(skin, size + 100, size + 100);
-    asteroid->entity.x_offset = 35;
-    asteroid->entity.y_offset = 35;
+    asteroid->entity.skin = ptr_skin; 
+    asteroid->entity.x_offset = (int)pw - (pw / 4);
+    asteroid->entity.y_offset = (int)ph - (ph / 4); 
 
     asteroid->next = NULL;
 
@@ -41,7 +47,7 @@ char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, x11_t
         if (collision(asteroid->entity.pos, player)) 
             return 1;
 
-        else if (asteroid->entity.pos.y > xorg.window.height || shot_collision(shots, asteroid->entity.pos))
+        else if (asteroid->entity.pos.y > VH || shot_collision(shots, asteroid->entity.pos))
         {
             if (*asteroids == asteroid) 
             {
@@ -68,19 +74,11 @@ void render_asteroids(obj *asteroids, xcb_gcontext_t gc, x11_t xorg)
     if (!asteroids) 
         return;
 
-    int asteroids_color = ASTEROIDS_COLOR;
-    xcb_change_gc(xorg.connection, gc, XCB_GC_FOREGROUND, &asteroids_color);
-    for (obj *asteroid = asteroids; asteroid ; asteroid = asteroid->next) 
-    {
-        xcb_image_put(xorg.connection, 
-                      xorg.window.pixmap, gc, 
-                      asteroid->entity.skin, 
-                      asteroid->entity.pos.x - asteroid->entity.x_offset, 
-                      asteroid->entity.pos.y - asteroid->entity.y_offset, 0);
-
-        /** xcb_poly_rectangle(xorg.connection,  */
-        /**                    xorg.window.id, gc, 1,  */
-        /**                    &asteroid->entity.pos); */
+    for (obj *asteroid = asteroids; asteroid ; asteroid = asteroid->next) {
+        render_image(xorg.window.buffer,
+                     asteroid->entity.skin,
+                     asteroid->entity.pos.x - asteroid->entity.x_offset,
+                     asteroid->entity.pos.y - asteroid->entity.y_offset);
+        /** render_rectangle(xorg.window.buffer, asteroid->entity.pos, 0x0000ff00); */
     }
-    xcb_flush(xorg.connection);
 }

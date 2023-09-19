@@ -1,6 +1,8 @@
 #include "objects.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <xcb/xproto.h>
 
 char shot_collision(obj *shots, xcb_rectangle_t object)
 {
@@ -18,8 +20,8 @@ void shoot(obj **shots, xcb_rectangle_t player)
     obj *shot =  malloc(sizeof(obj));
     shot->entity.pos.x = player.x + (player.width / 2);
     shot->entity.pos.y = player.y;
-    shot->entity.pos.width = 5;
-    shot->entity.pos.height = 20;
+    shot->entity.pos.width = 1;
+    shot->entity.pos.height = 10;
     shot->next = NULL;
 
     if (!*shots) {
@@ -64,12 +66,7 @@ void render_shots(obj *shots, xcb_gcontext_t gc, x11_t xorg)
     if (!shots) 
         return;
 
-    int shot_color = SHOT_COLOR;
-    xcb_change_gc(xorg.connection, gc, XCB_GC_FOREGROUND, &shot_color);
     for (obj *shot = shots; shot != NULL; shot = shot->next) 
-        xcb_poly_fill_rectangle(xorg.connection, 
-                                xorg.window.pixmap, 
-                                gc, 1, 
-                                &shot->entity.pos); 
-    xcb_flush(xorg.connection);
+        render_fill_rectangle(xorg.window.buffer,
+                         shot->entity.pos, SHOT_COLOR);
 }

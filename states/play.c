@@ -1,11 +1,8 @@
+#include "global.h"
 #include "states.h" 
 #include "objects/objects.h"
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <xcb/xcb.h>
+#include <string.h>
 #include <xcb/xcb_image.h>
-#include <xcb/xproto.h>
 
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -14,8 +11,6 @@
 #include "../stb_image_resize.h"
 
 #define PLAYER_SPEED 100 
-#define PLAYER_COLOR 0x000000ff
-
 #define GRAVITY 50 
 
 typedef struct {
@@ -26,6 +21,7 @@ typedef struct {
 } self_t;
 
 void free_obj(obj*);
+void render_image(xcb_image_t *window, xcb_image_t *data, int dest_x, int dest_y);
 
 void play_state_load(x11_t xorg)
 {
@@ -36,13 +32,13 @@ void play_state_load(x11_t xorg)
     self->gc = xcb_generate_id(xorg.connection);
     xcb_create_gc(xorg.connection, self->gc, xorg.window.id, 0, NULL);
 
-    self->player.pos.width = 100;
-    self->player.pos.height= 170;
-    self->player.pos.x = xorg.window.width / 2;
-    self->player.pos.y = xorg.window.height - self->player.pos.height;
-    self->player.x_offset = 50;
-    self->player.y_offset = 20;
-    self->player.skin = load_image("spaceship.png", 200, 200, xorg);
+    self->player.skin = load_image("spaceship.png", 0, 0, xorg);
+    self->player.pos.width = self->player.skin->width - 20;
+    self->player.pos.height= self->player.skin->height - 10;
+    self->player.pos.x = VW / 2;
+    self->player.pos.y = VH - self->player.pos.height;
+    self->player.x_offset = 10;
+    self->player.y_offset = 10;
 
     self->shots = NULL;
     self->asteroids = NULL;
@@ -89,36 +85,50 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
         
     if (self->player.pos.y < 0) 
         self->player.pos.y = 0;
-    else if (self->player.pos.y + self->player.pos.height > xorg.window.height)
-        self->player.pos.y = xorg.window.height - self->player.pos.height;
+    else if (self->player.pos.y + self->player.pos.height > VH)
+        self->player.pos.y = VH - self->player.pos.height;
     
     if (self->player.pos.x < 0)
         self->player.pos.x = 0;
-    else if (self->player.pos.x + self->player.pos.width > xorg.window.width)
-        self->player.pos.x = xorg.window.width - self->player.pos.width;
+    else if (self->player.pos.x + self->player.pos.width > VW)
+        self->player.pos.x = VW - self->player.pos.width;
 }
 
 
 void play_state_render(x11_t xorg)
 {
     self_t *self = state_machine[cur_state].self;
-    render_shots(self->shots, self->gc, xorg);
 
-    xcb_void_cookie_t cookie = xcb_image_put(xorg.connection, 
-                                             xorg.window.pixmap, 
-                                             self->gc, self->player.skin, 
-                                             self->player.pos.x - self->player.x_offset, 
-                                             self->player.pos.y - self->player.y_offset, 0);
+    memcpy(xorg.window.buffer->data, xorg.window.background, VH *VW *4);
+    render_image(xorg.window.buffer, 
+                  self->player.skin, 
+                  self->player.pos.x - self->player.x_offset, 
+                  self->player.pos.y - self->player.y_offset);
+    /** render_rectangle(xorg.window.buffer, self->player.pos, 0x000000ff); */
 
     render_asteroids(self->asteroids, self->gc, xorg);
+    render_shots(self->shots, self->gc, xorg);
 
-    /** int player_color = PLAYER_COLOR; */
-    /** xcb_change_gc(xorg.connection, self->gc, XCB_GC_FOREGROUND, &player_color); */
-    /** xcb_void_cookie_t cookie = xcb_poly_fill_rectangle(xorg.connection,  */
-    /**                                                    xorg.window.id,  */
-    /**                                                    self->gc, 1,  */
-    /**                                                    &self->player);  */
-    xcb_request_check(xorg.connection, cookie);
+    int rw = (int) ((float) (xorg.window.height * VW) / VH); 
+    unsigned char data[rw * xorg.window.height * 4];
+    stbir_filter filter = STBIR_FILTER_BOX;
+    stbir_resize(xorg.window.buffer->data,
+                 VW, VH, 0,
+                 data, rw, xorg.window.height, 0,
+                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
+    xcb_image_t r = *xorg.window.buffer;
+    r.data = data;
+    r.size = rw * xorg.window.height * 4;
+    r.width = rw;
+    r.height = xorg.window.height;
+
+    xcb_request_check(xorg.connection, 
+                      xcb_image_put(xorg.connection, 
+                                    xorg.window.id, 
+                                    self->gc, 
+                                    &r, (xorg.window.width / 2) - (rw/2), 
+                                    0, 0));
 }
 
 char collision(xcb_rectangle_t a, xcb_rectangle_t b) 
@@ -135,8 +145,7 @@ void free_obj(obj *objects)
     if (!objects) 
         return;
 
-    while (objects) 
-    {
+    while (objects) {
         obj *tmp = objects->next;
         free(objects);
         objects = tmp;
@@ -180,12 +189,9 @@ xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
                                        w, h, 
                                        XCB_IMAGE_FORMAT_Z_PIXMAP,
                                        xorg.screen->root_depth, 
-                                       data, size, data);
-        
-    
-
+                                       data, w * h * 4, data);
     size = width * height * channels;
-
+        
     unsigned char *resized_data = malloc(size);
     stbir_filter filter = STBIR_FILTER_BOX;
     stbir_resize(data,
@@ -200,4 +206,37 @@ xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
                                    XCB_IMAGE_FORMAT_Z_PIXMAP, 
                                    xorg.screen->root_depth, 
                                    resized_data, size, resized_data);
+}
+
+void render_rectangle(xcb_image_t *window, xcb_rectangle_t rect, int color)
+{
+    for (int i = rect.y; i < rect.height + rect.y && i < VH; i++) {
+        xcb_image_put_pixel(window, rect.x, i, color);
+        xcb_image_put_pixel(window, rect.x + rect.width, i, color);
+    }
+
+    for (int i = rect.x; i < rect.width + rect.x && i < VW; i++) {
+        xcb_image_put_pixel(window, i, rect.y, color);
+        xcb_image_put_pixel(window, i, rect.y + rect.height, color);
+    }
+}
+
+void render_fill_rectangle(xcb_image_t *window, xcb_rectangle_t rect, int color)
+{
+    for (int y = rect.y; y < rect.y + rect.height && y < VH; y++) 
+        for (int x = rect.x; x < rect.x + rect.width && x < VW; x++) 
+            xcb_image_put_pixel(window, x, y, color);
+}
+
+void render_image(xcb_image_t *window, xcb_image_t *image, int dest_x, int dest_y)
+{
+    for (int y = dest_y; y < dest_y + image->height && y < window->height; y++) {
+        for (int x = dest_x; x < dest_x + image->width && x < window->width; x++) {
+            unsigned char *pixel = image->data + ((x - dest_x) + ((y - dest_y) * image->width)) * 4;
+            if (pixel[3] == 0) 
+                continue;
+            xcb_image_put_pixel(window, x, y, *(unsigned int*) pixel);
+        }
+    
+    }
 }

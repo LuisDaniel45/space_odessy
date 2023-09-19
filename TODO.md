@@ -18,8 +18,10 @@
 
         ```
 
-   - [ ] Make use of Bitmaps 
-   - [ ] Make and render game skins 
+   - [x] Make use of Bitmaps 
+   - [x] Make and render game skins 
+        
+
    - [ ] Find font to use for start and game_over state
    - [ ] Make start and Game Over look good
    - [ ] Make the Game resizable 

@@ -15,9 +15,9 @@ typedef struct {
     int height;
     char *title;
     xcb_window_t id;
-    xcb_rectangle_t back_buffer;
-    xcb_pixmap_t pixmap;
     xcb_gcontext_t gc;
+    xcb_image_t *buffer;
+    unsigned char *background;
 } window_t;
 
 typedef struct {
@@ -36,6 +36,9 @@ typedef struct {
 // static xcb_connection_t *connection;
 // static xcb_screen_t     *screen;
 // static window_t          window;
+
+#define VW 300 
+#define VH 600
 
 void change_state(x11_t xorg);
 int  print_screen(x11_t xorg, char *text, font_t font, int x, int y); 
