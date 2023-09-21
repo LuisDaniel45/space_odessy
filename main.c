@@ -1,27 +1,31 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-
-#include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 #include "states/global.h"
 #include "states/states.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image.h"
+#include "stb_image_resize.h"
+
+
 #define BORDERW 20
 #define SECONDS 1000000
+#define BG_SPEED 100
 
 
-x11_t global_init();
-window_t window_init(x11_t);
-void change_state(x11_t xorg);
+x11_t        global_init();
+window_t     window_init(x11_t);
+v_window_t   virtual_window_init(x11_t xorg, int w, int h);
+background_t background_init(x11_t xorg);
+
 int *map_keyboard(x11_t xorg, char KeyDown[]);
-void resize_bg(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height);
-pixmap_t pixmap_init(x11_t xorg, int w, int h);
-void free_pixmap(pixmap_t pix, xcb_connection_t *con);
+void resize_bg(x11_t xorg, background_t *bg, int width, int height);
+void free_v_window(v_window_t v_window, xcb_connection_t *con);
 
 int main(int argc, char *argv[])
 {
@@ -50,17 +54,35 @@ int main(int argc, char *argv[])
             if (time_per_frame > time) 
                 usleep(time_per_frame - time);
 
-            xcb_request_check(xorg.connection, 
-                xcb_copy_area(
-                    xorg.connection, 
-                    xorg.window.bg, 
-                    xorg.v_window.pix, 
-                    xorg.window.gc, 
-                    0, 0, 0, 0, 
-                    xorg.v_window.w, 
-                    xorg.v_window.h
-                )
-            );
+            xcb_void_cookie_t cookie;
+
+            if (xorg.bg.y < xorg.v_window.h) 
+            { 
+                cookie = xcb_copy_area(xorg.connection,
+                        xorg.bg.pixmap,
+                        xorg.v_window.pix,
+                        xorg.window.gc,
+                        0, xorg.bg.cur_height - xorg.bg.y, 0, 0,
+                        xorg.v_window.w,
+                        xorg.bg.y);
+                xcb_copy_area(xorg.connection,
+                        xorg.bg.pixmap,
+                        xorg.v_window.pix,
+                        xorg.window.gc,
+                        0, 0, 0, xorg.bg.y,
+                        xorg.v_window.w,
+                        xorg.v_window.h - xorg.bg.y);
+            }
+            else 
+                cookie = xcb_copy_area(xorg.connection,
+                        xorg.bg.pixmap,
+                        xorg.v_window.pix,
+                        xorg.window.gc,
+                        0, xorg.bg.cur_height - xorg.bg.y, 0, 0,
+                        xorg.v_window.w,
+                        xorg.v_window.h);
+
+            xcb_request_check(xorg.connection, cookie);
 
             state_machine[cur_state].render(xorg);
 
@@ -101,9 +123,9 @@ int main(int argc, char *argv[])
                     xorg.window.height = expose->height;
 
                     int rw = (int) ((float) (expose->height * VW) / VH);
-                    resize_bg(xorg, &xorg.window.bg, rw, expose->height);
-                    free_pixmap(xorg.v_window, xorg.connection);
-                    xorg.v_window = pixmap_init(xorg, rw, expose->height);
+                    resize_bg(xorg, &xorg.bg, rw, expose->height);
+                    free_v_window(xorg.v_window, xorg.connection);
+                    xorg.v_window = virtual_window_init(xorg, rw, expose->height);
 
                     xcb_clear_area(xorg.connection, 
                                    0, xorg.window.id, 
@@ -132,11 +154,12 @@ int main(int argc, char *argv[])
         }
 
         state_machine[cur_state].update(xorg, dt, KeyDown, keypress);
+        xorg.bg.y = (xorg.bg.y + (int)(BG_SPEED * dt)) % xorg.bg.cur_height;
         counter++; 
     }
 
 exit:
-    free_pixmap(xorg.v_window, xorg.connection);
+    free_v_window(xorg.v_window, xorg.connection);
     xcb_free_pixmap(xorg.connection, xorg.v_window.pix);
     xcb_destroy_window(xorg.connection, xorg.window.id);
     xcb_unmap_window(xorg.connection, xorg.window.id);
@@ -152,7 +175,8 @@ x11_t global_init()
     xorg.setup      = xcb_get_setup(xorg.connection);
     xorg.screen     = xcb_setup_roots_iterator(xorg.setup).data;
     xorg.window     = window_init(xorg); 
-    xorg.v_window   = pixmap_init(xorg, VW, VH);
+    xorg.v_window   = virtual_window_init(xorg, VW, VH);
+    xorg.bg         = background_init(xorg);
     return xorg;
 }
 
@@ -161,8 +185,8 @@ window_t window_init(x11_t xorg)
     window_t window = {
         .x = 0, 
         .y = 0,
-        .width  = 200, 
-        .height = 200, 
+        .width  = VW * 2, 
+        .height = VH * 1.5, 
         .title  = "Space Odessy",
         .id     = xcb_generate_id(xorg.connection),
         .gc     = xcb_generate_id(xorg.connection),
@@ -180,7 +204,7 @@ window_t window_init(x11_t xorg)
                       window.id,                        // window id 
                       xorg.screen->root,                // screen
                       window.x, window.y,               // cordinates of top left corner of window
-                      window.width, window.width,       // size of window
+                      window.width, window.height,      // size of window
                       BORDERW,                          // border width of window
                       XCB_WINDOW_CLASS_INPUT_OUTPUT,    // what the window receives 
                       xorg.screen->root_visual,         // idk  
@@ -189,25 +213,6 @@ window_t window_init(x11_t xorg)
     mask = XCB_GC_FOREGROUND;
     int values_gc[] = {0x00000000};
     xcb_create_gc(xorg.connection, window.gc, window.id, mask, &values_gc);
-
-    window.bg = xcb_generate_id(xorg.connection); 
-    xcb_create_pixmap(xorg.connection, 
-                      xorg.screen->root_depth, 
-                      window.bg, 
-                      window.id, 
-                      VW, VH);
-
-    xcb_poly_fill_rectangle(
-          xorg.connection, 
-          window.bg, 
-          window.gc, 1, 
-          (xcb_rectangle_t[]) {{
-                .x = 0, 
-                .y = 0, 
-                .width = VW, 
-                .height = VH 
-          }}
-    );
 
     // set window title
     xcb_change_property(xorg.connection, 
@@ -246,22 +251,20 @@ int print_screen(x11_t xorg, char *text, font_t font, int x, int y)
     return xcb_request_check(xorg.connection, testCookie) ? true : false;
 }
 
-void resize_bg(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height)
+void resize_bg(x11_t xorg, background_t *bg, int width, int height)
 {
-    xcb_free_pixmap(xorg.connection, *pixmap);
-    *pixmap = xcb_generate_id(xorg.connection);
-    xcb_create_pixmap(xorg.connection, xorg.screen->root_depth, *pixmap, xorg.window.id, width, height);
-    xcb_poly_fill_rectangle(
-          xorg.connection, 
-          *pixmap, 
-          xorg.window.gc, 1, 
-          (xcb_rectangle_t[]) {{
-                .x = 0, 
-                .y = 0, 
-                .width = width, 
-                .height = height
-          }}
-    );
+    xcb_free_pixmap(xorg.connection, bg->pixmap);
+    bg->pixmap = xcb_generate_id(xorg.connection);
+    int rh = (bg->image->height * height) / VH;
+    xcb_create_pixmap(xorg.connection, xorg.screen->root_depth, bg->pixmap, xorg.window.id, width, rh);
+    xcb_image_t *r = resize_image(bg->image, width, rh);
+    bg->cur_height = rh;
+    xcb_request_check(xorg.connection, 
+        xcb_image_put(xorg.connection, 
+                      bg->pixmap, 
+                      xorg.window.gc, r, 0, 0, 0));
+    free(r->data);
+    free(r);
 }
 
 int *map_keyboard(x11_t xorg, char KeyDown[])
@@ -296,7 +299,7 @@ void change_state(x11_t xorg)
     state_machine[cur_state].load(xorg);
 } 
 
-void render_image(pixmap_t window, xcb_image_t *image, int dest_x, int dest_y)
+void render_image(v_window_t window, xcb_image_t *image, int dest_x, int dest_y)
 {
     int ndx = (dest_x * window.w) / VW;
     int ndy = (dest_y * window.h) / VH;
@@ -327,9 +330,9 @@ void render_image(pixmap_t window, xcb_image_t *image, int dest_x, int dest_y)
     }
 }
 
-pixmap_t pixmap_init(x11_t xorg, int w, int h)
+v_window_t virtual_window_init(x11_t xorg, int w, int h)
 {
-    pixmap_t result; 
+    v_window_t result; 
     xcb_shm_query_version_reply_t*  reply;
 
     reply = xcb_shm_query_version_reply(
@@ -369,9 +372,81 @@ pixmap_t pixmap_init(x11_t xorg, int w, int h)
     return result;
 }
 
-void free_pixmap(pixmap_t pix, xcb_connection_t *con)
+void free_v_window(v_window_t v_window, xcb_connection_t *con)
 {
-    xcb_shm_detach(con, pix.info.shmseg);
-    shmdt(pix.info.shmaddr);
-    xcb_free_pixmap(con, pix.pix);
+    xcb_shm_detach(con, v_window.info.shmseg);
+    shmdt(v_window.info.shmaddr);
+    xcb_free_pixmap(con, v_window.pix);
+}
+
+background_t background_init(x11_t xorg)
+{
+    background_t bg = {
+        .y = 0,
+        .image = load_image("bg.png", 0, 0, xorg),
+        .pixmap = xcb_generate_id(xorg.connection)
+    };
+
+    xcb_create_pixmap(xorg.connection, 
+                      xorg.screen->root_depth, 
+                      bg.pixmap, 
+                      xorg.window.id, 
+                      bg.image->width, bg.image->height);
+    return bg;
+}
+
+xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
+{
+    int channels, size, w, h;
+    unsigned char *data = stbi_load(file, &w, &h, &channels, STBI_rgb_alpha);
+    for (int i = 0; i < w * h; i++) {
+        unsigned char *pixel = data + (i * channels);
+        char tmp = *pixel;
+        *pixel  = pixel[2];
+        pixel[2] = tmp;
+    }
+
+    if (!width || !height) 
+        return xcb_image_create_native(xorg.connection, 
+                                       w, h, 
+                                       XCB_IMAGE_FORMAT_Z_PIXMAP,
+                                       xorg.screen->root_depth, 
+                                       data, w * h * 4, data);
+    size = width * height * channels;
+        
+    unsigned char *resized_data = malloc(size);
+    stbir_filter filter = STBIR_FILTER_BOX;
+    stbir_resize(data,
+                 w, h, 0,
+                 resized_data, width, height, 0,
+                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
+    stbi_image_free(data);
+
+    return xcb_image_create_native(xorg.connection, 
+                                   width, height, 
+                                   XCB_IMAGE_FORMAT_Z_PIXMAP, 
+                                   xorg.screen->root_depth, 
+                                   resized_data, size, resized_data);
+}
+
+xcb_image_t *resize_image(xcb_image_t *image, int width, int height)
+{
+    int size = width * height * 4;
+    unsigned char *resized_data = malloc(size);
+    stbir_filter filter = STBIR_FILTER_BOX;
+    stbir_resize(image->data,
+                 image->width, image->height, 0,
+                 resized_data, width, height, 0,
+                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
+
+    xcb_image_t *image_out = malloc(sizeof(xcb_image_t));
+    *image_out = *image;
+    image_out->size = size;
+    image_out->width = width;
+    image_out->height = height;
+    image_out->data = resized_data;
+
+    return image_out;
 }

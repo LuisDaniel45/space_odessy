@@ -18,13 +18,11 @@
 
         ```
 
-   - [x] Make use of Bitmaps 
+   - [x] Make use of pixmaps 
    - [x] Make and render game skins 
-        
-
    - [ ] Find font to use for start and game_over state
    - [ ] Make start and Game Over look good
-   - [ ] Make the Game resizable 
+   - [x] Make the Game resizable 
    - [ ] Do Game Mechanichs
    - [ ] Introduce Sound 
    - [ ] Refactor, test, and improve code 

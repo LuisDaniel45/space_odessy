@@ -69,7 +69,7 @@ char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, x11_t
     return 0;
 }
 
-void render_asteroids(obj *asteroids, pixmap_t window)
+void render_asteroids(obj *asteroids, v_window_t window)
 {
     if (!asteroids) 
         return;

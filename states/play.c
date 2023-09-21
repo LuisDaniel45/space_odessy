@@ -1,14 +1,11 @@
 #include "global.h"
 #include "states.h" 
 #include "objects/objects.h"
+
+#include <math.h>
 #include <string.h>
 #include <xcb/xcb_image.h>
 
-
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "../stb_image.h"
-#include "../stb_image_resize.h"
 
 #define PLAYER_SPEED 100 
 #define GRAVITY 50 
@@ -129,58 +126,3 @@ void free_obj(obj *objects)
     }
 }
 
-xcb_image_t *resize_image(xcb_image_t *image, int width, int height)
-{
-    int size = width * height * 4;
-    unsigned char *resized_data = malloc(size);
-    stbir_filter filter = STBIR_FILTER_BOX;
-    stbir_resize(image->data,
-                 image->width, image->height, 0,
-                 resized_data, width, height, 0,
-                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
-                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
-
-    xcb_image_t *image_out = malloc(sizeof(xcb_image_t));
-    *image_out = *image;
-    image_out->size = size;
-    image_out->width = width;
-    image_out->height = height;
-    image_out->data = resized_data;
-
-    return image_out;
-}
-
-xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
-{
-    int channels, size, w, h;
-    unsigned char *data = stbi_load(file, &w, &h, &channels, STBI_rgb_alpha);
-    for (int i = 0; i < w * h; i++) {
-        unsigned char *pixel = data + (i * channels);
-        char tmp = *pixel;
-        *pixel  = pixel[2];
-        pixel[2] = tmp;
-    }
-
-    if (!width || !height) 
-        return xcb_image_create_native(xorg.connection, 
-                                       w, h, 
-                                       XCB_IMAGE_FORMAT_Z_PIXMAP,
-                                       xorg.screen->root_depth, 
-                                       data, w * h * 4, data);
-    size = width * height * channels;
-        
-    unsigned char *resized_data = malloc(size);
-    stbir_filter filter = STBIR_FILTER_BOX;
-    stbir_resize(data,
-                 w, h, 0,
-                 resized_data, width, height, 0,
-                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
-                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
-    stbi_image_free(data);
-
-    return xcb_image_create_native(xorg.connection, 
-                                   width, height, 
-                                   XCB_IMAGE_FORMAT_Z_PIXMAP, 
-                                   xorg.screen->root_depth, 
-                                   resized_data, size, resized_data);
-}

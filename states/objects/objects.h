@@ -26,11 +26,7 @@ char shot_collision(obj*, xcb_rectangle_t );
 void load_asteroids(x11_t);
 void spawn_asteroids(x11_t xorg, obj **asteroids);
 char update_asteroids(obj **, obj *, xcb_rectangle_t, x11_t, double);
-void render_asteroids(obj *asteroids, pixmap_t window);
+void render_asteroids(obj *asteroids, v_window_t window);
 
 char collision(xcb_rectangle_t a, xcb_rectangle_t b);
-xcb_image_t *load_image(char *file, int width, int height, x11_t xorg);
-xcb_image_t *resize_image(xcb_image_t *image, int width, int height);
 
-void render_rectangle(xcb_image_t *window, xcb_rectangle_t rect, int color);
-void render_fill_rectangle(xcb_image_t *window, xcb_rectangle_t rect, int color);
