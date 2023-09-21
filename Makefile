@@ -6,7 +6,7 @@ SRC=main.c $(STATES) $(OBJECTS)
 
 CC=gcc
 
-LIBS=-lxcb -lm -lxcb-image -lxcb-render
+LIBS=-lxcb -lm -lxcb-image -lxcb-shm
 
 ${PROG}: ${SRC} states
 	${CC} -o $@ ${SRC} ${LIBS}

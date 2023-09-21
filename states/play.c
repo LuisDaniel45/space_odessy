@@ -21,7 +21,6 @@ typedef struct {
 } self_t;
 
 void free_obj(obj*);
-void render_image(xcb_image_t *window, xcb_image_t *data, int dest_x, int dest_y);
 
 void play_state_load(x11_t xorg)
 {
@@ -70,7 +69,7 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
     self->player.pos.x = (int) round((double) self->player.pos.x + dx);
 
     if (rand() % 100 == 0)
-        spawn_asteroids(xorg, &self->asteroids, xorg.window);
+        spawn_asteroids(xorg, &self->asteroids);
 
     update_shots(&self->shots, dt);
 
@@ -99,36 +98,14 @@ void play_state_render(x11_t xorg)
 {
     self_t *self = state_machine[cur_state].self;
 
-    memcpy(xorg.window.buffer->data, xorg.window.background, VH *VW *4);
-    render_image(xorg.window.buffer, 
+    render_image(xorg.v_window, 
                   self->player.skin, 
                   self->player.pos.x - self->player.x_offset, 
                   self->player.pos.y - self->player.y_offset);
     /** render_rectangle(xorg.window.buffer, self->player.pos, 0x000000ff); */
 
-    render_asteroids(self->asteroids, self->gc, xorg);
-    render_shots(self->shots, self->gc, xorg);
-
-    int rw = (int) ((float) (xorg.window.height * VW) / VH); 
-    unsigned char data[rw * xorg.window.height * 4];
-    stbir_filter filter = STBIR_FILTER_BOX;
-    stbir_resize(xorg.window.buffer->data,
-                 VW, VH, 0,
-                 data, rw, xorg.window.height, 0,
-                 STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
-                 filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
-    xcb_image_t r = *xorg.window.buffer;
-    r.data = data;
-    r.size = rw * xorg.window.height * 4;
-    r.width = rw;
-    r.height = xorg.window.height;
-
-    xcb_request_check(xorg.connection, 
-                      xcb_image_put(xorg.connection, 
-                                    xorg.window.id, 
-                                    self->gc, 
-                                    &r, (xorg.window.width / 2) - (rw/2), 
-                                    0, 0));
+    render_asteroids(self->asteroids, xorg.v_window);
+    render_shots(self->shots, xorg, self->gc);
 }
 
 char collision(xcb_rectangle_t a, xcb_rectangle_t b) 
@@ -206,37 +183,4 @@ xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
                                    XCB_IMAGE_FORMAT_Z_PIXMAP, 
                                    xorg.screen->root_depth, 
                                    resized_data, size, resized_data);
-}
-
-void render_rectangle(xcb_image_t *window, xcb_rectangle_t rect, int color)
-{
-    for (int i = rect.y; i < rect.height + rect.y && i < VH; i++) {
-        xcb_image_put_pixel(window, rect.x, i, color);
-        xcb_image_put_pixel(window, rect.x + rect.width, i, color);
-    }
-
-    for (int i = rect.x; i < rect.width + rect.x && i < VW; i++) {
-        xcb_image_put_pixel(window, i, rect.y, color);
-        xcb_image_put_pixel(window, i, rect.y + rect.height, color);
-    }
-}
-
-void render_fill_rectangle(xcb_image_t *window, xcb_rectangle_t rect, int color)
-{
-    for (int y = rect.y; y < rect.y + rect.height && y < VH; y++) 
-        for (int x = rect.x; x < rect.x + rect.width && x < VW; x++) 
-            xcb_image_put_pixel(window, x, y, color);
-}
-
-void render_image(xcb_image_t *window, xcb_image_t *image, int dest_x, int dest_y)
-{
-    for (int y = dest_y; y < dest_y + image->height && y < window->height; y++) {
-        for (int x = dest_x; x < dest_x + image->width && x < window->width; x++) {
-            unsigned char *pixel = image->data + ((x - dest_x) + ((y - dest_y) * image->width)) * 4;
-            if (pixel[3] == 0) 
-                continue;
-            xcb_image_put_pixel(window, x, y, *(unsigned int*) pixel);
-        }
-    
-    }
 }

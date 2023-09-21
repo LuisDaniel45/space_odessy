@@ -11,7 +11,7 @@ void load_asteroids(x11_t xorg)
         skin[i] = resize_image(skin[0], skin[i - 1]->width + 10, skin[i - 1]->height + 10);
 }
 
-void spawn_asteroids(x11_t xorg, obj **asteroids, window_t window)
+void spawn_asteroids(x11_t xorg, obj **asteroids)
 {
     obj *asteroid = malloc(sizeof(obj));
 
@@ -69,13 +69,13 @@ char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, x11_t
     return 0;
 }
 
-void render_asteroids(obj *asteroids, xcb_gcontext_t gc, x11_t xorg)
+void render_asteroids(obj *asteroids, pixmap_t window)
 {
     if (!asteroids) 
         return;
 
     for (obj *asteroid = asteroids; asteroid ; asteroid = asteroid->next) {
-        render_image(xorg.window.buffer,
+        render_image(window,
                      asteroid->entity.skin,
                      asteroid->entity.pos.x - asteroid->entity.x_offset,
                      asteroid->entity.pos.y - asteroid->entity.y_offset);

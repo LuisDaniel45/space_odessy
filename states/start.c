@@ -17,6 +17,8 @@ void start_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
 void start_state_render(x11_t xorg)
 {
     self_t *self = state_machine[cur_state].self; 
-    print_screen(xorg, "Space Odessy", *self, xorg.window.width / 2, xorg.window.height / 3);
-    print_screen(xorg, "Press Enter to play", *self, (xorg.window.width / 2) - 20, xorg.window.height / 2);
+    print_screen(xorg, "Space Odessy", *self, 
+                 xorg.v_window.w / 2, xorg.v_window.h / 3);
+    print_screen(xorg, "Press Enter to play", *self, 
+                (xorg.v_window.w / 2) - 20, xorg.v_window.h/ 2);
 }

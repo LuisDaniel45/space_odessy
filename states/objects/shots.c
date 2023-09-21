@@ -61,12 +61,19 @@ void update_shots(obj **shots, double dt)
     }
 }
 
-void render_shots(obj *shots, xcb_gcontext_t gc, x11_t xorg)
+void render_shots(obj *shots, x11_t xorg, xcb_gcontext_t gc)
 {
     if (!shots) 
         return;
 
-    for (obj *shot = shots; shot != NULL; shot = shot->next) 
-        render_fill_rectangle(xorg.window.buffer,
-                         shot->entity.pos, SHOT_COLOR);
+    xcb_change_gc(xorg.connection, gc, XCB_GC_FOREGROUND, (int[]) {SHOT_COLOR});
+    for (obj *shot = shots; shot != NULL; shot = shot->next) {
+        xcb_rectangle_t scale_shot = {
+            .x = (shot->entity.pos.x * xorg.v_window.w) / VW,
+            .y = (shot->entity.pos.y * xorg.v_window.h) / VH,
+            .width = (shot->entity.pos.width * xorg.v_window.w) / VW,
+            .height = (shot->entity.pos.height * xorg.v_window.h) / VH
+        };
+        xcb_poly_fill_rectangle(xorg.connection, xorg.v_window.pix, gc, 1, &scale_shot);
+    }
 }

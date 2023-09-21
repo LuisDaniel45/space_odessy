@@ -1,15 +1,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <xcb/render.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <xcb/xcb_image.h>
-#include <xcb/xcb_renderutil.h>
-
 
 #include "states/global.h"
 #include "states/states.h"
@@ -22,7 +19,9 @@ x11_t global_init();
 window_t window_init(x11_t);
 void change_state(x11_t xorg);
 int *map_keyboard(x11_t xorg, char KeyDown[]);
-void resize_pixmap(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height);
+void resize_bg(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height);
+pixmap_t pixmap_init(x11_t xorg, int w, int h);
+void free_pixmap(pixmap_t pix, xcb_connection_t *con);
 
 int main(int argc, char *argv[])
 {
@@ -51,7 +50,33 @@ int main(int argc, char *argv[])
             if (time_per_frame > time) 
                 usleep(time_per_frame - time);
 
+            xcb_request_check(xorg.connection, 
+                xcb_copy_area(
+                    xorg.connection, 
+                    xorg.window.bg, 
+                    xorg.v_window.pix, 
+                    xorg.window.gc, 
+                    0, 0, 0, 0, 
+                    xorg.v_window.w, 
+                    xorg.v_window.h
+                )
+            );
+
             state_machine[cur_state].render(xorg);
+
+            xcb_request_check(xorg.connection, 
+                xcb_copy_area(
+                    xorg.connection, 
+                    xorg.v_window.pix, 
+                    xorg.window.id, 
+                    xorg.window.gc, 
+                    0, 0, 
+                    (xorg.window.width/2) - (xorg.v_window.w/2), 
+                    0,
+                    xorg.v_window.w, xorg.v_window.h
+                )
+            );
+
 
             counter = 0;
             time = 0;
@@ -74,7 +99,16 @@ int main(int argc, char *argv[])
                     xorg.window.y = expose->y;
                     xorg.window.width = expose->width;
                     xorg.window.height = expose->height;
-                    xcb_clear_area(xorg.connection, 0, xorg.window.id, 0, 0, expose->width, expose->height);
+
+                    int rw = (int) ((float) (expose->height * VW) / VH);
+                    resize_bg(xorg, &xorg.window.bg, rw, expose->height);
+                    free_pixmap(xorg.v_window, xorg.connection);
+                    xorg.v_window = pixmap_init(xorg, rw, expose->height);
+
+                    xcb_clear_area(xorg.connection, 
+                                   0, xorg.window.id, 
+                                   0, 0, 
+                                   expose->width, expose->height);
                     continue;
                 }
 
@@ -102,6 +136,8 @@ int main(int argc, char *argv[])
     }
 
 exit:
+    free_pixmap(xorg.v_window, xorg.connection);
+    xcb_free_pixmap(xorg.connection, xorg.v_window.pix);
     xcb_destroy_window(xorg.connection, xorg.window.id);
     xcb_unmap_window(xorg.connection, xorg.window.id);
     xcb_disconnect(xorg.connection);
@@ -116,6 +152,7 @@ x11_t global_init()
     xorg.setup      = xcb_get_setup(xorg.connection);
     xorg.screen     = xcb_setup_roots_iterator(xorg.setup).data;
     xorg.window     = window_init(xorg); 
+    xorg.v_window   = pixmap_init(xorg, VW, VH);
     return xorg;
 }
 
@@ -150,18 +187,27 @@ window_t window_init(x11_t xorg)
                       mask, values);                    // the events that program handles 
 
     mask = XCB_GC_FOREGROUND;
-    int values_gc[] = {0xff000000};
+    int values_gc[] = {0x00000000};
     xcb_create_gc(xorg.connection, window.gc, window.id, mask, &values_gc);
 
-    int size = VW * VH * 4;
-    window.background = malloc(size);
-    unsigned char *buffer  = malloc(size);
-    window.buffer = xcb_image_create_native(xorg.connection, 
-                                            VW, VH, 
-                                            XCB_IMAGE_FORMAT_Z_PIXMAP, 
-                                            xorg.screen->root_depth, 
-                                            buffer, size, buffer); 
+    window.bg = xcb_generate_id(xorg.connection); 
+    xcb_create_pixmap(xorg.connection, 
+                      xorg.screen->root_depth, 
+                      window.bg, 
+                      window.id, 
+                      VW, VH);
 
+    xcb_poly_fill_rectangle(
+          xorg.connection, 
+          window.bg, 
+          window.gc, 1, 
+          (xcb_rectangle_t[]) {{
+                .x = 0, 
+                .y = 0, 
+                .width = VW, 
+                .height = VH 
+          }}
+    );
 
     // set window title
     xcb_change_property(xorg.connection, 
@@ -196,15 +242,26 @@ font_t font_init(x11_t xorg, char *name)
 int print_screen(x11_t xorg, char *text, font_t font, int x, int y)
 {
     xcb_void_cookie_t testCookie = xcb_image_text_8_checked(xorg.connection, strlen(text), 
-                                                            xorg.window.id, font.gc, x, y, text);
+                                                            xorg.v_window.pix, font.gc, x, y, text);
     return xcb_request_check(xorg.connection, testCookie) ? true : false;
 }
 
-void resize_pixmap(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height)
+void resize_bg(x11_t xorg, xcb_pixmap_t *pixmap, int width, int height)
 {
     xcb_free_pixmap(xorg.connection, *pixmap);
     *pixmap = xcb_generate_id(xorg.connection);
     xcb_create_pixmap(xorg.connection, xorg.screen->root_depth, *pixmap, xorg.window.id, width, height);
+    xcb_poly_fill_rectangle(
+          xorg.connection, 
+          *pixmap, 
+          xorg.window.gc, 1, 
+          (xcb_rectangle_t[]) {{
+                .x = 0, 
+                .y = 0, 
+                .width = width, 
+                .height = height
+          }}
+    );
 }
 
 int *map_keyboard(x11_t xorg, char KeyDown[])
@@ -238,3 +295,83 @@ void change_state(x11_t xorg)
 
     state_machine[cur_state].load(xorg);
 } 
+
+void render_image(pixmap_t window, xcb_image_t *image, int dest_x, int dest_y)
+{
+    int ndx = (dest_x * window.w) / VW;
+    int ndy = (dest_y * window.h) / VH;
+
+    int xo = 0, yo = 0;
+    if (dest_y < 0) 
+        yo = ndy;
+    if (dest_x < 0) 
+        xo = ndx; 
+
+    int nw = (image->width * window.w) / VW;
+    int nh = (image->height * window.h) / VH;
+
+    double x_scale = (double)image->width / nw; 
+    double y_scale = (double)image->height / nh; 
+
+    for (int y = ndy - yo; y < ndy + nh && y < window.h; y++) {
+        for (int x = ndx - xo; x < ndx + nw && x < window.w; x++) {
+           int src_x = (int) ((x - ndx) * x_scale);
+           int src_y = (int) ((y - ndy) * y_scale);
+
+            unsigned char *pixel = &image->data[(src_x + (src_y * image->width)) * 4];
+            if (pixel[3] == 0)
+                continue;
+            window.buffer[x + (y * window.w)] = *(int*)pixel;
+        }
+
+    }
+}
+
+pixmap_t pixmap_init(x11_t xorg, int w, int h)
+{
+    pixmap_t result; 
+    xcb_shm_query_version_reply_t*  reply;
+
+    reply = xcb_shm_query_version_reply(
+                xorg.connection,
+                xcb_shm_query_version(xorg.connection),
+                NULL
+            );
+
+    if(!reply || !reply->shared_pixmaps)
+    {
+        printf("Shm error...\n");
+        exit(0);
+    }
+
+    result.info.shmid   = shmget(IPC_PRIVATE, w*h*4, IPC_CREAT | 0777);
+    result.info.shmaddr = shmat(result.info.shmid, 0, 0);
+
+    result.info.shmseg = xcb_generate_id(xorg.connection);
+    xcb_shm_attach(xorg.connection, result.info.shmseg, result.info.shmid, 0);
+    shmctl(result.info.shmid, IPC_RMID, 0);
+
+    result.buffer = result.info.shmaddr;
+
+    result.pix = xcb_generate_id(xorg.connection);
+    xcb_shm_create_pixmap(
+        xorg.connection,
+        result.pix,
+        xorg.window.id,
+        w, h,
+        xorg.screen->root_depth,
+        result.info.shmseg,
+        0
+    );
+    result.w = w;
+    result.h = h;
+
+    return result;
+}
+
+void free_pixmap(pixmap_t pix, xcb_connection_t *con)
+{
+    xcb_shm_detach(con, pix.info.shmseg);
+    shmdt(pix.info.shmaddr);
+    xcb_free_pixmap(con, pix.pix);
+}
