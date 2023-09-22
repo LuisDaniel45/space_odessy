@@ -3,35 +3,31 @@
 #include <xcb/xcb_image.h>
 #include <xcb/xproto.h>
 
-static xcb_image_t *skin[MAX_SKINS];
+static image_t skin[MAX_SKINS];
 
 void unload_asteroids(obj *asteroids)
 {
-    xcb_image_destroy(*skin);
-    for (int i = 1; i < MAX_SKINS; i++) 
-    {
-        free(skin[i]->data);
-        free(skin[i]);
-    }
+    for (int i = 0; i < MAX_SKINS; i++)
+        free(skin[i].data);
     free_obj(asteroids);
 }
 
 void load_asteroids(x11_t xorg)
 {
-    skin[0] = load_image("asteroids.png", 0, 0, xorg);
+    skin[0] = slice_texture(xorg.textures, 50 * 2, 0, 30, 30, 1);
     for (int i = 1; i < MAX_SKINS; i++) 
-        skin[i] = resize_image(skin[0], skin[i - 1]->width + 10, skin[i - 1]->height + 10);
+        skin[i] = resize_image(skin[0], skin[i - 1].width + 10, skin[i - 1].height + 10);
 }
 
 void spawn_asteroids(x11_t xorg, obj **asteroids)
 {
     obj *asteroid = malloc(sizeof(obj));
 
-    xcb_image_t *ptr_skin  = skin[rand() % MAX_SKINS]; 
-    double pw = (ptr_skin->height * 0.30);
-    double ph = (ptr_skin->width * 0.30);  
-    asteroid->entity.pos.height = (int) ptr_skin->height - ph;
-    asteroid->entity.pos.width = (int) ptr_skin->width - pw;
+    image_t ptr_skin  = skin[(int) rand() % MAX_SKINS]; 
+    double pw = (ptr_skin.height * 0.30);
+    double ph = (ptr_skin.width * 0.30);  
+    asteroid->entity.pos.height = (int) ptr_skin.height - ph;
+    asteroid->entity.pos.width = (int) ptr_skin.width - pw;
     asteroid->entity.pos.x = rand() % (VW - asteroid->entity.pos.width);
     asteroid->entity.pos.y = -asteroid->entity.pos.height;
     asteroid->entity.skin = ptr_skin; 

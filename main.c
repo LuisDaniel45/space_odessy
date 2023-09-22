@@ -61,8 +61,8 @@ int main(int argc, char *argv[])
 
             xcb_void_cookie_t cookie;
 
-            if (xorg.bg.y < xorg.v_window.h) 
-            { 
+            if (xorg.bg.y < xorg.v_window.h)
+            {
                 cookie = xcb_copy_area(xorg.connection,
                         xorg.bg.pixmap,
                         xorg.v_window.pix,
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
                         xorg.v_window.w,
                         xorg.v_window.h - xorg.bg.y);
             }
-            else 
+            else
                 cookie = xcb_copy_area(xorg.connection,
                         xorg.bg.pixmap,
                         xorg.v_window.pix,
@@ -91,14 +91,14 @@ int main(int argc, char *argv[])
 
             state_machine[cur_state].render(xorg);
 
-            xcb_request_check(xorg.connection, 
+            xcb_request_check(xorg.connection,
                 xcb_copy_area(
-                    xorg.connection, 
-                    xorg.v_window.pix, 
-                    xorg.window.id, 
-                    xorg.window.gc, 
-                    0, 0, 
-                    (xorg.window.width/2) - (xorg.v_window.w/2), 
+                    xorg.connection,
+                    xorg.v_window.pix,
+                    xorg.window.id,
+                    xorg.window.gc,
+                    0, 0,
+                    (xorg.window.width/2) - (xorg.v_window.w/2),
                     0,
                     xorg.v_window.w, xorg.v_window.h
                 )
@@ -164,12 +164,37 @@ int main(int argc, char *argv[])
     }
 
 exit:
+    free(xorg.textures.data);
     bg_free(xorg.connection, xorg.bg);
     free_v_window(xorg.v_window, xorg.connection);
     window_free(xorg.connection, xorg.window);
     xcb_disconnect(xorg.connection);
     free(keyboard);
     return 0;
+}
+
+image_t slice_texture(image_t texture, int x, int y, int w, int h, char cpy)
+{
+    if (!cpy)
+        return (image_t) { 
+            .data = &texture.data[(x + (y * texture.width)) * 4],
+            .width = w, 
+            .height = h,
+            .y_offset = texture.width
+        };
+
+    int *buffer = malloc(w*h*4);
+    for (int dy = 0; dy < h; dy++) 
+        for (int dx = 0; dx < w; dx++) 
+            buffer[(dx + (dy * w))] = 
+                 ((int*)texture.data)[(dx + x) + 
+                  ((dy + y) * texture.y_offset)];
+    return (image_t) { 
+        .data = (unsigned char*)buffer,
+        .width = w, 
+        .height = h,
+        .y_offset = w 
+    };
 }
 
 x11_t global_init()
@@ -181,6 +206,7 @@ x11_t global_init()
     xorg.window     = window_init(xorg); 
     xorg.v_window   = virtual_window_init(xorg, VW, VH);
     xorg.bg         = background_init(xorg);
+    xorg.textures   = load_image("textures.png", 0, 0, xorg);
     return xorg;
 }
 
@@ -272,23 +298,23 @@ int print_screen(x11_t xorg, char *text, font_t font, int x, int y)
 void bg_free(xcb_connection_t *c, background_t bg)
 {
     xcb_free_pixmap(c, bg.pixmap);
-    xcb_image_destroy(bg.image);
+    free(bg.image.data);
 }
 
 void resize_bg(x11_t xorg, background_t *bg, int width, int height)
 {
     xcb_free_pixmap(xorg.connection, bg->pixmap);
     bg->pixmap = xcb_generate_id(xorg.connection);
-    int rh = (bg->image->height * height) / VH;
+    int rh = (bg->image.height * height) / VH;
     xcb_create_pixmap(xorg.connection, xorg.screen->root_depth, bg->pixmap, xorg.window.id, width, rh);
-    xcb_image_t *r = resize_image(bg->image, width, rh);
+    image_t r = resize_image(bg->image, width, rh);
+    xcb_image_t *tmp = xcb_image_create_native(xorg.connection, r.width, r.height, XCB_IMAGE_FORMAT_Z_PIXMAP, xorg.screen->root_depth, r.data, r.width * r.height * 4, r.data);
     bg->cur_height = rh;
     xcb_request_check(xorg.connection, 
         xcb_image_put(xorg.connection, 
                       bg->pixmap, 
-                      xorg.window.gc, r, 0, 0, 0));
-    free(r->data);
-    free(r);
+                      xorg.window.gc, tmp, 0, 0, 0));
+    xcb_image_destroy(tmp);
 }
 
 int *map_keyboard(x11_t xorg, char KeyDown[])
@@ -323,7 +349,7 @@ void change_state(x11_t xorg)
     state_machine[cur_state].load(xorg);
 } 
 
-void render_image(v_window_t window, xcb_image_t *image, int dest_x, int dest_y)
+void render_image(v_window_t window, image_t image, int dest_x, int dest_y)
 {
     int ndx = (dest_x * window.w) / VW;
     int ndy = (dest_y * window.h) / VH;
@@ -334,18 +360,19 @@ void render_image(v_window_t window, xcb_image_t *image, int dest_x, int dest_y)
     if (dest_x < 0) 
         xo = ndx; 
 
-    int nw = (image->width * window.w) / VW;
-    int nh = (image->height * window.h) / VH;
+    int nw = (image.width * window.w) / VW;
+    int nh = (image.height * window.h) / VH;
 
-    double x_scale = (double)image->width / nw; 
-    double y_scale = (double)image->height / nh; 
+    double x_scale = (double)image.width / nw; 
+    double y_scale = (double)image.height / nh; 
+
 
     for (int y = ndy - yo; y < ndy + nh && y < window.h; y++) {
         for (int x = ndx - xo; x < ndx + nw && x < window.w; x++) {
            int src_x = (int) ((x - ndx) * x_scale);
            int src_y = (int) ((y - ndy) * y_scale);
 
-            unsigned char *pixel = &image->data[(src_x + (src_y * image->width)) * 4];
+            unsigned char *pixel = &image.data[(src_x + (src_y * image.y_offset)) * 4];
             if (pixel[3] == 0)
                 continue;
             window.buffer[x + (y * window.w)] = *(int*)pixel;
@@ -415,11 +442,11 @@ background_t background_init(x11_t xorg)
                       xorg.screen->root_depth, 
                       bg.pixmap, 
                       xorg.window.id, 
-                      bg.image->width, bg.image->height);
+                      bg.image.width, bg.image.height);
     return bg;
 }
 
-xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
+image_t load_image(char *file, int width, int height, x11_t xorg)
 {
     int channels, size, w, h;
     unsigned char *data = stbi_load(file, &w, &h, &channels, STBI_rgb_alpha);
@@ -431,11 +458,13 @@ xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
     }
 
     if (!width || !height) 
-        return xcb_image_create_native(xorg.connection, 
-                                       w, h, 
-                                       XCB_IMAGE_FORMAT_Z_PIXMAP,
-                                       xorg.screen->root_depth, 
-                                       data, w * h * 4, data);
+        return (image_t) {
+            .data = data, 
+            .width = w,
+            .height = h, 
+            .y_offset = w
+        };
+
     size = width * height * channels;
         
     unsigned char *resized_data = malloc(size);
@@ -447,30 +476,29 @@ xcb_image_t *load_image(char *file, int width, int height, x11_t xorg)
                  filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
     stbi_image_free(data);
 
-    return xcb_image_create_native(xorg.connection, 
-                                   width, height, 
-                                   XCB_IMAGE_FORMAT_Z_PIXMAP, 
-                                   xorg.screen->root_depth, 
-                                   resized_data, size, resized_data);
+    return (image_t) { 
+        .data = resized_data,
+        .width = width,
+        .height = height, 
+        .y_offset = width 
+    };
 }
 
-xcb_image_t *resize_image(xcb_image_t *image, int width, int height)
+image_t resize_image(image_t image, int width, int height)
 {
     int size = width * height * 4;
     unsigned char *resized_data = malloc(size);
     stbir_filter filter = STBIR_FILTER_BOX;
-    stbir_resize(image->data,
-                 image->width, image->height, 0,
+    stbir_resize(image.data,
+                 image.width, image.height, 0,
                  resized_data, width, height, 0,
                  STBIR_TYPE_UINT8, 4, 1, 1, STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
                  filter, filter, STBIR_COLORSPACE_LINEAR, NULL);
 
-    xcb_image_t *image_out = malloc(sizeof(xcb_image_t));
-    *image_out = *image;
-    image_out->size = size;
-    image_out->width = width;
-    image_out->height = height;
-    image_out->data = resized_data;
-
-    return image_out;
+    return (image_t) { 
+        .data = resized_data,
+        .y_offset = width, 
+        .width = width,
+        .height = height, 
+    };
 }

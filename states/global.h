@@ -13,11 +13,18 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+typedef struct { 
+    int width;
+    int height;
+    int y_offset;
+    unsigned char *data;
+} image_t;
+
 typedef struct {
     int y;
     int cur_height;
     xcb_pixmap_t pixmap;
-    xcb_image_t *image;
+    image_t image;
 } background_t;
 
 typedef struct { 
@@ -45,6 +52,7 @@ typedef struct {
     v_window_t v_window;
     xcb_setup_t *setup;
     background_t bg;
+    image_t textures;
 } x11_t;
 
 typedef struct {
@@ -65,6 +73,7 @@ int  print_screen(x11_t xorg, char *text, font_t font, int x, int y);
 font_t font_init(x11_t xorg, char *name);
 void free_font(xcb_connection_t *c, font_t font);
 
-void render_image(v_window_t window, xcb_image_t *image, int dest_x, int dest_y);
-xcb_image_t *load_image(char *file, int width, int height, x11_t xorg);
-xcb_image_t *resize_image(xcb_image_t *image, int width, int height);
+void render_image(v_window_t window, image_t image, int dest_x, int dest_y);
+image_t load_image(char *file, int width, int height, x11_t xorg);
+image_t resize_image(image_t image, int width, int height);
+image_t slice_texture(image_t texture, int x, int y, int w, int h, char cpy);

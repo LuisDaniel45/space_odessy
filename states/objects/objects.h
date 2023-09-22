@@ -4,7 +4,7 @@ typedef struct {
     int x_offset;
     int y_offset;
     xcb_rectangle_t pos;
-    xcb_image_t *skin;
+    image_t skin;
 } entity_t;
 
 typedef struct node {

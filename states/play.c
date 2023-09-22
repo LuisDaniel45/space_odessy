@@ -27,9 +27,9 @@ void play_state_load(x11_t xorg)
     self->gc = xcb_generate_id(xorg.connection);
     xcb_create_gc(xorg.connection, self->gc, xorg.window.id, 0, NULL);
 
-    self->player.skin = load_image("spaceship.png", 0, 0, xorg);
-    self->player.pos.width = self->player.skin->width - 20;
-    self->player.pos.height= self->player.skin->height - 10;
+    self->player.skin = slice_texture(xorg.textures, 0, 0, 50, 50, 0); 
+    self->player.pos.width = self->player.skin.width - 20;
+    self->player.pos.height = self->player.skin.height - 10;
     self->player.pos.x = VW / 2;
     self->player.pos.y = VH - self->player.pos.height;
     self->player.x_offset = 10;
@@ -74,7 +74,6 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
     {
         free_obj(self->shots);
         unload_asteroids(self->asteroids);
-        xcb_image_destroy(self->player.skin);
         xcb_free_gc(xorg.connection, self->gc);
         return change_state(xorg);
     }
@@ -95,12 +94,10 @@ void play_state_render(x11_t xorg)
 {
     self_t *self = state_machine[cur_state].self;
 
-    render_image(xorg.v_window, 
-                  self->player.skin, 
-                  self->player.pos.x - self->player.x_offset, 
+    render_image(xorg.v_window,
+                  self->player.skin,
+                  self->player.pos.x - self->player.x_offset,
                   self->player.pos.y - self->player.y_offset);
-    /** render_rectangle(xorg.window.buffer, self->player.pos, 0x000000ff); */
-
     render_asteroids(self->asteroids, xorg.v_window);
     render_shots(self->shots, xorg, self->gc);
 }
