@@ -1,8 +1,4 @@
 #include "objects.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <xcb/xproto.h>
 
 char shot_collision(obj *shots, xcb_rectangle_t object)
 {
@@ -20,7 +16,7 @@ void shoot(obj **shots, xcb_rectangle_t player)
     obj *shot =  malloc(sizeof(obj));
     shot->entity.pos.x = player.x + (player.width / 2);
     shot->entity.pos.y = player.y;
-    shot->entity.pos.width = 1;
+    shot->entity.pos.width = 2;
     shot->entity.pos.height = 10;
     shot->next = NULL;
 

@@ -27,6 +27,8 @@ void load_asteroids(x11_t);
 void spawn_asteroids(x11_t xorg, obj **asteroids);
 char update_asteroids(obj **, obj *, xcb_rectangle_t, x11_t, double);
 void render_asteroids(obj *asteroids, v_window_t window);
+void unload_asteroids(obj *asteroids);
 
 char collision(xcb_rectangle_t a, xcb_rectangle_t b);
+void free_obj(obj *objects);
 

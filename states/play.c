@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include <xcb/xcb_image.h>
+#include <xcb/xproto.h>
 
 
 #define PLAYER_SPEED 100 
@@ -16,8 +17,6 @@ typedef struct {
     obj *asteroids;
     obj *shots;
 } self_t;
-
-void free_obj(obj*);
 
 void play_state_load(x11_t xorg)
 {
@@ -73,9 +72,10 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
     // update asteroids if collision with player change_state and if collision with laser free asteroid
     if (update_asteroids(&self->asteroids, self->shots, self->player.pos, xorg, dt)) 
     {
-        free_obj(self->asteroids);
         free_obj(self->shots);
+        unload_asteroids(self->asteroids);
         xcb_image_destroy(self->player.skin);
+        xcb_free_gc(xorg.connection, self->gc);
         return change_state(xorg);
     }
         

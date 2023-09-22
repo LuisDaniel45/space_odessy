@@ -1,8 +1,11 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_image.h>
+#include <xcb/xproto.h>
 
 #include "states/global.h"
 #include "states/states.h"
@@ -26,6 +29,8 @@ background_t background_init(x11_t xorg);
 int *map_keyboard(x11_t xorg, char KeyDown[]);
 void resize_bg(x11_t xorg, background_t *bg, int width, int height);
 void free_v_window(v_window_t v_window, xcb_connection_t *con);
+void window_free(xcb_connection_t *c, window_t window);
+void bg_free(xcb_connection_t *c, background_t bg);
 
 int main(int argc, char *argv[])
 {
@@ -159,10 +164,9 @@ int main(int argc, char *argv[])
     }
 
 exit:
+    bg_free(xorg.connection, xorg.bg);
     free_v_window(xorg.v_window, xorg.connection);
-    xcb_free_pixmap(xorg.connection, xorg.v_window.pix);
-    xcb_destroy_window(xorg.connection, xorg.window.id);
-    xcb_unmap_window(xorg.connection, xorg.window.id);
+    window_free(xorg.connection, xorg.window);
     xcb_disconnect(xorg.connection);
     free(keyboard);
     return 0;
@@ -179,6 +183,14 @@ x11_t global_init()
     xorg.bg         = background_init(xorg);
     return xorg;
 }
+
+void window_free(xcb_connection_t *c, window_t window)
+{
+    xcb_free_gc(c, window.gc);
+    xcb_unmap_window(c, window.id);
+    xcb_destroy_window(c, window.id);
+}
+
 
 window_t window_init(x11_t xorg)
 {
@@ -227,6 +239,12 @@ window_t window_init(x11_t xorg)
     return window;
 }
 
+void free_font(xcb_connection_t *c, font_t font)
+{
+    xcb_close_font(c, font.id);
+    xcb_free_gc(c, font.gc);
+}
+
 font_t font_init(x11_t xorg, char *name)
 {
     font_t font;
@@ -249,6 +267,12 @@ int print_screen(x11_t xorg, char *text, font_t font, int x, int y)
     xcb_void_cookie_t testCookie = xcb_image_text_8_checked(xorg.connection, strlen(text), 
                                                             xorg.v_window.pix, font.gc, x, y, text);
     return xcb_request_check(xorg.connection, testCookie) ? true : false;
+}
+
+void bg_free(xcb_connection_t *c, background_t bg)
+{
+    xcb_free_pixmap(c, bg.pixmap);
+    xcb_image_destroy(bg.image);
 }
 
 void resize_bg(x11_t xorg, background_t *bg, int width, int height)

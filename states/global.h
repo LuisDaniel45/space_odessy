@@ -63,6 +63,7 @@ typedef struct {
 
 int  print_screen(x11_t xorg, char *text, font_t font, int x, int y); 
 font_t font_init(x11_t xorg, char *name);
+void free_font(xcb_connection_t *c, font_t font);
 
 void render_image(v_window_t window, xcb_image_t *image, int dest_x, int dest_y);
 xcb_image_t *load_image(char *file, int width, int height, x11_t xorg);

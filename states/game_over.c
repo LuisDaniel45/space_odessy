@@ -1,3 +1,4 @@
+#include "global.h"
 #include "states.h"
 
 typedef font_t self_t;
@@ -10,8 +11,12 @@ void game_over_state_load(x11_t xorg)
     
 void game_over_state_update(x11_t xorg, double dt, char *KeyDown, int keypress)
 {
+    self_t *self  = state_machine[cur_state].self;
     if (keypress == XK_r) 
+    {
+        free_font(xorg.connection, *self);
         return change_state(xorg);
+    }
 }
 
 void game_over_state_render(x11_t xorg)

@@ -1,8 +1,20 @@
 #include "objects.h"
 #include <stdlib.h>
+#include <xcb/xcb_image.h>
 #include <xcb/xproto.h>
 
 static xcb_image_t *skin[MAX_SKINS];
+
+void unload_asteroids(obj *asteroids)
+{
+    xcb_image_destroy(*skin);
+    for (int i = 1; i < MAX_SKINS; i++) 
+    {
+        free(skin[i]->data);
+        free(skin[i]);
+    }
+    free_obj(asteroids);
+}
 
 void load_asteroids(x11_t xorg)
 {
