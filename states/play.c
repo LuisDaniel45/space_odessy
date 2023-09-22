@@ -3,6 +3,7 @@
 #include "objects/objects.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 #include <xcb/xcb_image.h>
 #include <xcb/xproto.h>
@@ -18,6 +19,9 @@ typedef struct {
     obj *shots;
 } self_t;
 
+#define PLAYER_MAX_SKINS 6
+static image_t skins[PLAYER_MAX_SKINS];
+
 void play_state_load(x11_t xorg)
 {
     load_asteroids(xorg);
@@ -27,7 +31,15 @@ void play_state_load(x11_t xorg)
     self->gc = xcb_generate_id(xorg.connection);
     xcb_create_gc(xorg.connection, self->gc, xorg.window.id, 0, NULL);
 
-    self->player.skin = slice_texture(xorg.textures, 0, 0, 50, 50, 0); 
+    skins[0] = slice_texture(xorg.textures, 0, 0, 50, 50, 0); 
+    skins[1] = slice_texture(xorg.textures, 50, 0, 50, 50, 0);
+    skins[2] = slice_texture(xorg.textures, 0, 50, 50, 50, 0);
+    skins[3] = flip_image(skins[2]); 
+    skins[4] = slice_texture(xorg.textures, 50, 50, 50, 50, 0);
+    skins[5] = flip_image(skins[4]); 
+
+
+    self->player.skin = skins[0]; 
     self->player.pos.width = self->player.skin.width - 20;
     self->player.pos.height = self->player.skin.height - 10;
     self->player.pos.x = VW / 2;
@@ -43,14 +55,29 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
 {
     self_t *self = state_machine[cur_state].self;
     double dx = 0, dy = 0;
+    self->player.skin = skins[0]; 
+    char fire = 0;
     if (KeyDown[XK_j]) 
         dy = PLAYER_SPEED * dt;
-    else if (KeyDown[XK_k]) 
+    else if (KeyDown[XK_k]) {
         dy = -PLAYER_SPEED * dt;
-    if (KeyDown[XK_l]) 
+        fire = 1;
+        self->player.skin = skins[1]; 
+    }
+    if (KeyDown[XK_l]) {
         dx = PLAYER_SPEED * dt;
-    else if (KeyDown[XK_h]) 
+        if (fire)
+            self->player.skin = skins[5];
+        else
+            self->player.skin = skins[3];
+    }
+    else if (KeyDown[XK_h]) {
         dx = -PLAYER_SPEED * dt;
+        if (fire)
+            self->player.skin = skins[4];
+        else
+            self->player.skin = skins[2];
+    }
     
     switch (keypress) {
         case 0:

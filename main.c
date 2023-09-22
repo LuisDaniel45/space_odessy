@@ -31,6 +31,7 @@ void resize_bg(x11_t xorg, background_t *bg, int width, int height);
 void free_v_window(v_window_t v_window, xcb_connection_t *con);
 void window_free(xcb_connection_t *c, window_t window);
 void bg_free(xcb_connection_t *c, background_t bg);
+image_t flip_image(image_t image);
 
 int main(int argc, char *argv[])
 {
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
     int counter = 0;
     double dt = 100.0 / SECONDS;
     const int max_updates = 1; 
-    const long time_per_frame = SECONDS / 30;
+    const long time_per_frame = SECONDS / 60;
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
@@ -171,6 +172,23 @@ exit:
     xcb_disconnect(xorg.connection);
     free(keyboard);
     return 0;
+}
+
+image_t flip_image(image_t image)
+{
+    int *buffer = malloc(image.width*image.height*sizeof(int));
+    for (int y = 0; y < image.height; y++) 
+        for (int x = 0; x < image.width; x++) 
+            buffer[(x + (y * image.width))] = 
+                 ((int*)image.data)[(image.width - x) + 
+                  (y * image.y_offset)];
+
+    return (image_t) { 
+        .data = (unsigned char*)buffer,
+        .width = image.width, 
+        .height = image.height,
+        .y_offset = image.width 
+    };
 }
 
 image_t slice_texture(image_t texture, int x, int y, int w, int h, char cpy)
