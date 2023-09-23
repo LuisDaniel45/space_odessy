@@ -31,7 +31,6 @@ void resize_bg(x11_t xorg, background_t *bg, int width, int height);
 void free_v_window(v_window_t v_window, xcb_connection_t *con);
 void window_free(xcb_connection_t *c, window_t window);
 void bg_free(xcb_connection_t *c, background_t bg);
-image_t flip_image(image_t image);
 
 int main(int argc, char *argv[])
 {
@@ -60,35 +59,28 @@ int main(int argc, char *argv[])
             if (time_per_frame > time) 
                 usleep(time_per_frame - time);
 
-            xcb_void_cookie_t cookie;
-
+            int h = xorg.v_window.h;
             if (xorg.bg.y < xorg.v_window.h)
             {
-                cookie = xcb_copy_area(xorg.connection,
-                        xorg.bg.pixmap,
-                        xorg.v_window.pix,
-                        xorg.window.gc,
-                        0, xorg.bg.cur_height - xorg.bg.y, 0, 0,
-                        xorg.v_window.w,
-                        xorg.bg.y);
+                h = xorg.bg.y;
                 xcb_copy_area(xorg.connection,
-                        xorg.bg.pixmap,
-                        xorg.v_window.pix,
-                        xorg.window.gc,
-                        0, 0, 0, xorg.bg.y,
-                        xorg.v_window.w,
-                        xorg.v_window.h - xorg.bg.y);
+                              xorg.bg.pixmap,
+                              xorg.v_window.pix,
+                              xorg.window.gc,
+                              0, 0, 0, xorg.bg.y,
+                              xorg.v_window.w,
+                              xorg.v_window.h - xorg.bg.y);
             }
-            else
-                cookie = xcb_copy_area(xorg.connection,
+            xcb_request_check(xorg.connection, 
+                    xcb_copy_area(
+                        xorg.connection,
                         xorg.bg.pixmap,
                         xorg.v_window.pix,
-                        xorg.window.gc,
-                        0, xorg.bg.cur_height - xorg.bg.y, 0, 0,
-                        xorg.v_window.w,
-                        xorg.v_window.h);
-
-            xcb_request_check(xorg.connection, cookie);
+                        xorg.window.gc, 0, 
+                        xorg.bg.cur_height - xorg.bg.y, 
+                        0, 0, xorg.v_window.w, h
+                    )
+            );
 
             state_machine[cur_state].render(xorg);
 
@@ -239,14 +231,15 @@ void window_free(xcb_connection_t *c, window_t window)
 window_t window_init(x11_t xorg)
 {
     window_t window = {
-        .x = 0, 
+        .x = xorg.screen->width_in_millimeters / 2,  
         .y = 0,
-        .width  = VW * 2, 
-        .height = VH * 1.5, 
+        .width  = VW * 1.6, 
+        .height = VH * 1.6, 
         .title  = "Space Odessy",
         .id     = xcb_generate_id(xorg.connection),
         .gc     = xcb_generate_id(xorg.connection),
     };
+
 
     // set window config
     int mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;

@@ -19,6 +19,10 @@ typedef struct {
     obj *shots;
 } self_t;
 
+#define PLAYER_ACCELERATE  1
+#define PLAYER_TURN_LEFT  (1<<1)
+#define PLAYER_TURN_RIGHT (1<<2)
+
 #define PLAYER_MAX_SKINS 6
 static image_t skins[PLAYER_MAX_SKINS];
 
@@ -34,10 +38,9 @@ void play_state_load(x11_t xorg)
     skins[0] = slice_texture(xorg.textures, 0, 0, 50, 50, 0); 
     skins[1] = slice_texture(xorg.textures, 50, 0, 50, 50, 0);
     skins[2] = slice_texture(xorg.textures, 0, 50, 50, 50, 0);
-    skins[3] = flip_image(skins[2]); 
-    skins[4] = slice_texture(xorg.textures, 50, 50, 50, 50, 0);
-    skins[5] = flip_image(skins[4]); 
-
+    skins[3] = slice_texture(xorg.textures, 50, 50, 50, 50, 0);
+    skins[4] = flip_image(skins[2]); 
+    skins[5] = flip_image(skins[3]); 
 
     self->player.skin = skins[0]; 
     self->player.pos.width = self->player.skin.width - 20;
@@ -53,31 +56,24 @@ void play_state_load(x11_t xorg)
 
 void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
 {
+    char flags = 0;
     self_t *self = state_machine[cur_state].self;
     double dx = 0, dy = 0;
-    self->player.skin = skins[0]; 
-    char fire = 0;
     if (KeyDown[XK_j]) 
         dy = PLAYER_SPEED * dt;
     else if (KeyDown[XK_k]) {
         dy = -PLAYER_SPEED * dt;
-        fire = 1;
-        self->player.skin = skins[1]; 
+        flags |= PLAYER_ACCELERATE;
     }
     if (KeyDown[XK_l]) {
         dx = PLAYER_SPEED * dt;
-        if (fire)
-            self->player.skin = skins[5];
-        else
-            self->player.skin = skins[3];
+        flags |= PLAYER_TURN_RIGHT;
     }
     else if (KeyDown[XK_h]) {
         dx = -PLAYER_SPEED * dt;
-        if (fire)
-            self->player.skin = skins[4];
-        else
-            self->player.skin = skins[2];
+        flags |= PLAYER_TURN_LEFT;
     }
+    self->player.skin = skins[flags]; 
     
     switch (keypress) {
         case 0:
