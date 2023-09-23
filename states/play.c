@@ -25,6 +25,7 @@ typedef struct {
 
 #define PLAYER_MAX_SKINS 6
 static image_t skins[PLAYER_MAX_SKINS];
+void change_skins(int flags);
 
 void play_state_load(x11_t xorg)
 {
@@ -37,14 +38,12 @@ void play_state_load(x11_t xorg)
 
     skins[0] = slice_texture(xorg.textures, 0, 0, 50, 50, 0); 
     skins[1] = slice_texture(xorg.textures, 50, 0, 50, 50, 0);
-    skins[2] = slice_texture(xorg.textures, 0, 50, 50, 50, 0);
-    skins[3] = slice_texture(xorg.textures, 50, 50, 50, 50, 0);
+    skins[2] = slice_texture(xorg.textures, 0, 50, 25, 50, 0);
+    skins[3] = slice_texture(xorg.textures, 50, 50, 25, 50, 0);
     skins[4] = flip_image(skins[2]); 
     skins[5] = flip_image(skins[3]); 
 
-    self->player.skin = skins[0]; 
-    self->player.pos.width = self->player.skin.width - 20;
-    self->player.pos.height = self->player.skin.height - 10;
+    change_skins(0);
     self->player.pos.x = VW / 2;
     self->player.pos.y = VH - self->player.pos.height;
     self->player.x_offset = 10;
@@ -73,7 +72,7 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
         dx = -PLAYER_SPEED * dt;
         flags |= PLAYER_TURN_LEFT;
     }
-    self->player.skin = skins[flags]; 
+    change_skins(flags);
     
     switch (keypress) {
         case 0:
@@ -146,3 +145,11 @@ void free_obj(obj *objects)
     }
 }
 
+
+void change_skins(int flags)
+{
+    self_t *self = state_machine[cur_state].self;
+    self->player.skin = skins[flags]; 
+    self->player.pos.width = skins[flags].width - (skins[flags].width / 2);
+    self->player.pos.height = skins[flags].height - (skins[flags].height / 4);
+}

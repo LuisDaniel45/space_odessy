@@ -15,11 +15,9 @@
 #include "stb_image.h"
 #include "stb_image_resize.h"
 
-
 #define BORDERW 20
 #define SECONDS 1000000
 #define BG_SPEED 100
-
 
 x11_t        global_init();
 window_t     window_init(x11_t);
@@ -360,10 +358,31 @@ void change_state(x11_t xorg)
     state_machine[cur_state].load(xorg);
 } 
 
+
+int translate_y(v_window_t window, int y)
+{
+    return (y * window.h) / VH;
+}
+
+int translate_x(v_window_t window, int x)
+{
+    return (x * window.w) / VW;
+}
+
+xcb_rectangle_t translate_rect_pos(v_window_t window, xcb_rectangle_t rect)
+{
+    return (xcb_rectangle_t) { 
+        .x = translate_x(window, rect.x),
+        .y = translate_y(window, rect.y),
+        .width = translate_x(window, rect.width),
+        .height = translate_y(window, rect.height)
+    };
+}
+
 void render_image(v_window_t window, image_t image, int dest_x, int dest_y)
 {
-    int ndx = (dest_x * window.w) / VW;
-    int ndy = (dest_y * window.h) / VH;
+    int ndx = translate_x(window, dest_x);
+    int ndy = translate_y(window, dest_y); 
 
     int xo = 0, yo = 0;
     if (dest_y < 0) 

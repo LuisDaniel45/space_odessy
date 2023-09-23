@@ -64,12 +64,8 @@ void render_shots(obj *shots, x11_t xorg, xcb_gcontext_t gc)
 
     xcb_change_gc(xorg.connection, gc, XCB_GC_FOREGROUND, (int[]) {SHOT_COLOR});
     for (obj *shot = shots; shot != NULL; shot = shot->next) {
-        xcb_rectangle_t scale_shot = {
-            .x = (shot->entity.pos.x * xorg.v_window.w) / VW,
-            .y = (shot->entity.pos.y * xorg.v_window.h) / VH,
-            .width = (shot->entity.pos.width * xorg.v_window.w) / VW,
-            .height = (shot->entity.pos.height * xorg.v_window.h) / VH
-        };
-        xcb_poly_fill_rectangle(xorg.connection, xorg.v_window.pix, gc, 1, &scale_shot);
+        xcb_rectangle_t scale_pos = translate_rect_pos(xorg.v_window, shot->entity.pos);
+        xcb_poly_fill_rectangle(xorg.connection, xorg.v_window.pix, gc, 1, &scale_pos);
+                                
     }
 }
