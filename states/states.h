@@ -27,7 +27,7 @@ void game_over_state_load(x11_t);
 void game_over_state_render(x11_t);
 void game_over_state_update(x11_t, double, char[], int);
 
-void change_state(x11_t xorg);
+void change_state(x11_t xorg, int state);
     
 
 static const int number_of_states = STATE_GAME_OVER + 1;

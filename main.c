@@ -292,13 +292,12 @@ int font_init(char *name, font_t *font)
         printf("error loading font");
         return 1; 
     }
-
-    FT_Set_Pixel_Sizes(font->face, font->w, font->h);
     return 0;
 }
 
 int render_text(v_window_t window, font_t font, char *str, int dest_x, int dest_y, int color)
 {
+    FT_Set_Pixel_Sizes(font.face, translate_x(window,font.w), translate_y(window, font.h));
     int real_x = translate_x(window, dest_x);
     int real_y = translate_y(window, dest_y) + font.h;
 
@@ -306,6 +305,7 @@ int render_text(v_window_t window, font_t font, char *str, int dest_x, int dest_
     {
         if (FT_Load_Char(font.face, *ptr, FT_LOAD_RENDER))
         {
+            printf("*ptr = %c\n", *ptr);
             perror("Error: loading char\n");
             return 1;
         }
@@ -313,8 +313,10 @@ int render_text(v_window_t window, font_t font, char *str, int dest_x, int dest_
         
         FT_GlyphSlot g = font.face->glyph;
         char *bitmap = g->bitmap.buffer;
+
         int w = g->bitmap.width; 
         int h = g->bitmap.rows;
+
 
         for (int y = 0; y < h && y + real_y < window.h; y++) 
             for (int x = 0; x < w && x + real_x < window.w; x++) 
@@ -377,13 +379,16 @@ int *map_keyboard(x11_t xorg, char KeyDown[])
     return keyboard;
 }     
 
-void change_state(x11_t xorg)
+void change_state(x11_t xorg, int state)
 {
     free(state_machine[cur_state].self);
 
-    cur_state++;
+    cur_state = state;
     if (cur_state >= number_of_states) 
-        cur_state = 0;
+    {
+        perror("Error: State doesn't exist");
+        exit(1);
+    }
 
     state_machine[cur_state].load(xorg);
 } 

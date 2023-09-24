@@ -96,7 +96,7 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
         free_obj(self->shots);
         unload_asteroids(self->asteroids);
         xcb_free_gc(xorg.connection, self->gc);
-        return change_state(xorg);
+        return change_state(xorg, STATE_GAME_OVER);
     }
         
     if (self->player.pos.y < 0) 
