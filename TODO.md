@@ -21,10 +21,11 @@
    - [x] Make use of pixmaps 
    - [x] Make and render game skins 
    - [x] Make the Game resizable 
-   - [ ] Find font to use for start and game_over state
-   - [ ] Make start and Game Over look good
+   - [x] Find font to use for start and game_over state
+   - [x] Make start and Game Over look good
+   - [ ] Make Font resizable
    - [ ] Introduce Sound 
-   - [ ] Debug collision 
+   - [x] Debug collision 
    - [ ] Make Render parallel for efficiency 
    - [ ] Do Game Mechanichs
    - [ ] Refactor, test, and improve code 

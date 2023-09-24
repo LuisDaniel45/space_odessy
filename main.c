@@ -7,6 +7,9 @@
 #include <xcb/xcb_image.h>
 #include <xcb/xproto.h>
 
+#include <freetype2/ft2build.h>
+#include <freetype2/freetype/freetype.h>
+
 #include "states/global.h"
 #include "states/states.h"
 
@@ -274,34 +277,61 @@ window_t window_init(x11_t xorg)
     return window;
 }
 
-void free_font(xcb_connection_t *c, font_t font)
+void free_font(font_t font)
 {
-    xcb_close_font(c, font.id);
-    xcb_free_gc(c, font.gc);
+    FT_Done_Face(font.face);
+    FT_Done_FreeType(font.ft);
 }
 
-font_t font_init(x11_t xorg, char *name)
+int font_init(char *name, font_t *font)
 {
-    font_t font;
-    font.id = xcb_generate_id(xorg.connection);
+    FT_Init_FreeType(&font->ft);
+    
+    if (FT_New_Face(font->ft, name, 0, &font->face)) 
+    {
+        printf("error loading font");
+        return 1; 
+    }
 
-    // open font 
-    xcb_open_font(xorg.connection, font.id, strlen(name), name);
-
-    // create graphics context for font 
-    font.gc = xcb_generate_id(xorg.connection);
-    int gc_mask = XCB_GC_BACKGROUND | XCB_GC_FOREGROUND | XCB_GC_FONT;
-    int gc_values[] = {xorg.screen->white_pixel, xorg.screen->black_pixel, font.id};
-
-    xcb_create_gc(xorg.connection, font.gc, xorg.window.id, gc_mask, gc_values);
-    return font;
+    FT_Set_Pixel_Sizes(font->face, font->w, font->h);
+    return 0;
 }
 
-int print_screen(x11_t xorg, char *text, font_t font, int x, int y)
+int render_text(v_window_t window, font_t font, char *str, int dest_x, int dest_y, int color)
 {
-    xcb_void_cookie_t testCookie = xcb_image_text_8_checked(xorg.connection, strlen(text), 
-                                                            xorg.v_window.pix, font.gc, x, y, text);
-    return xcb_request_check(xorg.connection, testCookie) ? true : false;
+    int real_x = translate_x(window, dest_x);
+    int real_y = translate_y(window, dest_y) + font.h;
+
+    for (char *ptr = str; *ptr; ptr++) 
+    {
+        if (FT_Load_Char(font.face, *ptr, FT_LOAD_RENDER))
+        {
+            perror("Error: loading char\n");
+            return 1;
+        }
+
+        
+        FT_GlyphSlot g = font.face->glyph;
+        char *bitmap = g->bitmap.buffer;
+        int w = g->bitmap.width; 
+        int h = g->bitmap.rows;
+
+        for (int y = 0; y < h && y + real_y < window.h; y++) 
+            for (int x = 0; x < w && x + real_x < window.w; x++) 
+            {
+                if (!bitmap[x + (y * w)])
+                    continue;
+
+                int ny = y + real_y - g->bitmap_top;
+                if (ny < 0) 
+                    continue;
+                window.buffer[(x + real_x) + (ny * window.w)] = color;
+            }
+
+        real_x += g->advance.x >> 6;
+    }
+
+    return 0;
 }
 
 void bg_free(xcb_connection_t *c, background_t bg)
@@ -532,3 +562,5 @@ image_t resize_image(image_t image, int width, int height)
         .height = height, 
     };
 }
+
+

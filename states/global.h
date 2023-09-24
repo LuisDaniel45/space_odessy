@@ -13,6 +13,9 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+#include <freetype2/ft2build.h>
+#include <freetype2/freetype/freetype.h>
+
 typedef struct { 
     int width;
     int height;
@@ -56,8 +59,10 @@ typedef struct {
 } x11_t;
 
 typedef struct {
-    xcb_font_t id;
-    xcb_gcontext_t gc;
+    FT_Face face;
+    FT_Library ft;
+    int w;
+    int h;
 } font_t;
 
 // // global variables
@@ -69,9 +74,9 @@ typedef struct {
 #define VH 600
 
 
-int  print_screen(x11_t xorg, char *text, font_t font, int x, int y); 
-font_t font_init(x11_t xorg, char *name);
-void free_font(xcb_connection_t *c, font_t font);
+void free_font(font_t font);
+int font_init(char *name, font_t *font);
+int render_text(v_window_t window, font_t font, char *str, int dest_x, int dest_y, int color);
 
 void render_image(v_window_t window, image_t image, int dest_x, int dest_y);
 image_t load_image(char *file, int width, int height, x11_t xorg);

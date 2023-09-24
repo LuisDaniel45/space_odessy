@@ -86,12 +86,11 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
     self->player.pos.y = (int) round((double) self->player.pos.y  + dy);
     self->player.pos.x = (int) round((double) self->player.pos.x + dx);
 
-    if (rand() % 100 == 0)
+    if (rand() % 100 == 0) 
         spawn_asteroids(xorg, &self->asteroids);
 
     update_shots(&self->shots, dt);
 
-    // update asteroids if collision with player change_state and if collision with laser free asteroid
     if (update_asteroids(&self->asteroids, self->shots, self->player.pos, xorg, dt)) 
     {
         free_obj(self->shots);
