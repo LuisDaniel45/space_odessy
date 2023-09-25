@@ -73,6 +73,13 @@ typedef struct {
 } window_t;
 
 typedef struct {
+    FT_Face face;
+    FT_Library ft;
+    int w;
+    int h;
+} font_t;
+
+typedef struct {
     xcb_connection_t *connection;
     xcb_screen_t *screen;
     window_t window;
@@ -81,14 +88,9 @@ typedef struct {
     background_t bg;
     image_t textures;
     sounds_t sounds;
+    font_t font;
 } x11_t;
 
-typedef struct {
-    FT_Face face;
-    FT_Library ft;
-    int w;
-    int h;
-} font_t;
 
 #define VW 300 
 #define VH 600

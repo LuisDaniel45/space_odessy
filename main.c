@@ -162,6 +162,7 @@ int main(int argc, char *argv[])
     }
 
 exit:
+    free_font(xorg.font);
     free_sound(xorg.sounds);
     free(xorg.textures.data);
     bg_free(xorg.connection, xorg.bg);
@@ -308,6 +309,8 @@ x11_t global_init()
     xorg.bg         = background_init(xorg);
     xorg.textures   = load_image("textures.png", 0, 0, xorg);
     xorg.sounds     = sound_init();
+
+    font_init("font.ttf", &xorg.font);
     return xorg;
 }
 
