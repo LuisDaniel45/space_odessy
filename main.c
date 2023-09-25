@@ -1,11 +1,10 @@
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alut.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <xcb/xcb.h>
-#include <xcb/xcb_image.h>
-#include <xcb/xproto.h>
 
 #include <freetype2/ft2build.h>
 #include <freetype2/freetype/freetype.h>
@@ -141,6 +140,7 @@ int main(int argc, char *argv[])
                     
                     KeyDown[keypress % 255] = 1;
                     break;
+
                 }
 
                 case XCB_KEY_RELEASE: {
@@ -158,6 +158,7 @@ int main(int argc, char *argv[])
     }
 
 exit:
+    free_sound(xorg.sound);
     free(xorg.textures.data);
     bg_free(xorg.connection, xorg.bg);
     free_v_window(xorg.v_window, xorg.connection);
@@ -165,6 +166,70 @@ exit:
     xcb_disconnect(xorg.connection);
     free(keyboard);
     return 0;
+}
+
+int free_sound(sound_t sound) 
+{
+    alcMakeContextCurrent(NULL);
+    alcDestroyContext(sound.context);
+    alcCloseDevice(sound.device);
+    return 0;
+}
+
+int unload_sound_file(sound_t sound)
+{
+    alDeleteSources(1, &sound.source);
+    alDeleteBuffers(1, &sound.buffer);
+    return 0;
+}
+
+int sound_play(sound_t sound)
+{
+   alSourcei(sound.source, AL_BUFFER, sound.buffer);
+   alSourcePlay(sound.source);
+   return 0;
+}
+
+sound_t load_sound_file(sound_t sound, char *file)
+{
+    alGenSources((ALuint)1, &sound.source);
+
+    alSourcef(sound.source, AL_PITCH, 1);
+    alSourcef(sound.source, AL_GAIN, 1);
+    alSource3f(sound.source, AL_POSITION, 0, 0, 0);
+    alSource3f(sound.source, AL_VELOCITY, 0, 0, 0);
+    alSourcei(sound.source, AL_VELOCITY, AL_FALSE);
+
+    alGenBuffers((ALuint)1, &sound.buffer);
+    
+    ALsizei size, freq;
+    ALenum format;
+    ALvoid *data;
+    ALboolean loop = AL_FALSE;
+
+    alutLoadWAVFile(file, &format, &data, &size, &freq, &loop);
+    alBufferData(sound.buffer, format, data, size, freq);
+    return sound;
+}
+
+sound_t sound_init()
+{
+    sound_t sound;
+    sound.device = alcOpenDevice(NULL);
+    if (!sound.device) 
+    {
+        perror("Error: opening device\n");
+        exit(1);
+    }
+
+    sound.context = alcCreateContext(sound.device, NULL);
+    if (!alcMakeContextCurrent(sound.context)) 
+    {
+        perror("Error: setting context current\n");
+        exit(1);
+    }
+
+    return sound;
 }
 
 image_t flip_image(image_t image)
@@ -218,6 +283,7 @@ x11_t global_init()
     xorg.v_window   = virtual_window_init(xorg, VW, VH);
     xorg.bg         = background_init(xorg);
     xorg.textures   = load_image("textures.png", 0, 0, xorg);
+    xorg.sound      = sound_init();
     return xorg;
 }
 

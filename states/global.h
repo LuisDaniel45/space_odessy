@@ -16,6 +16,18 @@
 #include <freetype2/ft2build.h>
 #include <freetype2/freetype/freetype.h>
 
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alut.h>
+
+
+typedef struct {
+    ALuint source;
+    ALCcontext *context;
+    ALCdevice *device;
+    ALuint buffer;
+} sound_t;
+
 typedef struct { 
     int width;
     int height;
@@ -56,6 +68,7 @@ typedef struct {
     xcb_setup_t *setup;
     background_t bg;
     image_t textures;
+    sound_t sound;
 } x11_t;
 
 typedef struct {
@@ -73,6 +86,11 @@ typedef struct {
 #define VW 300 
 #define VH 600
 
+int unload_sound_file(sound_t sound);
+int sound_play(sound_t sound);
+sound_t load_sound_file(sound_t sound, char *file);
+sound_t sound_init();
+int free_sound(sound_t sound);
 
 void free_font(font_t font);
 int font_init(char *name, font_t *font);

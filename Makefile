@@ -8,7 +8,7 @@ CFLAGS=-Wall -Wextra
 
 CC=gcc
 
-LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lfreetype
+LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lfreetype -lopenal -lalut
 
 ${PROG}: ${SRC} states
 	${CC} -o $@ ${SRC} ${LIBS} ${CFLAGS}

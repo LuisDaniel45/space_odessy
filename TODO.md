@@ -24,7 +24,7 @@
    - [x] Find font to use for start and game_over state
    - [x] Make start and Game Over look good
    - [x] Make Font resizable
-   - [ ] Introduce Sound 
+   - [x] Introduce Sound 
    - [x] Debug collision 
    - [ ] Make Render parallel for efficiency 
    - [ ] Do Game Mechanichs

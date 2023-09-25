@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 typedef font_t self_t;
+static sound_t sound;
 void game_over_state_load(x11_t xorg)
 {
     state_machine[cur_state].self = malloc(sizeof(self_t));
@@ -13,6 +14,7 @@ void game_over_state_load(x11_t xorg)
         printf("Error loading font\n");
         exit(1);
     }
+    sound = load_sound_file(xorg.sound, "select.wav");
 }
     
 void game_over_state_update(x11_t xorg, double dt, char *KeyDown, int keypress)
@@ -21,6 +23,7 @@ void game_over_state_update(x11_t xorg, double dt, char *KeyDown, int keypress)
     if (keypress == XK_r) 
     {
         free_font(*self);
+        sound_play(sound);
         return change_state(xorg, STATE_PLAY);
     }
 }
