@@ -32,6 +32,10 @@ void free_v_window(v_window_t v_window, xcb_connection_t *con);
 void window_free(xcb_connection_t *c, window_t window);
 void bg_free(xcb_connection_t *c, background_t bg);
 
+sound_element_t load_sound_file(char *file);
+int unload_sound_file(sound_element_t sound);
+int free_sound(sounds_t sound);
+
 int main(int argc, char *argv[])
 {
     x11_t xorg = global_init();
@@ -158,7 +162,7 @@ int main(int argc, char *argv[])
     }
 
 exit:
-    free_sound(xorg.sound);
+    free_sound(xorg.sounds);
     free(xorg.textures.data);
     bg_free(xorg.connection, xorg.bg);
     free_v_window(xorg.v_window, xorg.connection);
@@ -168,30 +172,43 @@ exit:
     return 0;
 }
 
-int free_sound(sound_t sound) 
+int free_sound(sounds_t sound) 
 {
+    for (int i = 0; i < SOUND_MAX; i++) 
+        unload_sound_file(sound.sounds[i]);
     alcMakeContextCurrent(NULL);
     alcDestroyContext(sound.context);
     alcCloseDevice(sound.device);
     return 0;
 }
 
-int unload_sound_file(sound_t sound)
+int unload_sound_file(sound_element_t sound)
 {
     alDeleteSources(1, &sound.source);
     alDeleteBuffers(1, &sound.buffer);
     return 0;
 }
 
-int sound_play(sound_t sound)
+void sound_pause(sounds_t sound, enum sounds_enum i) 
 {
-   alSourcei(sound.source, AL_BUFFER, sound.buffer);
-   alSourcePlay(sound.source);
-   return 0;
+    return alSourcePause(sound.sounds[i].source);
 }
 
-sound_t load_sound_file(sound_t sound, char *file)
+char isSoundPlaying(sounds_t sound, enum sounds_enum i)
 {
+    int state; 
+    alGetSourcei(sound.sounds[i].source, AL_SOURCE_STATE, &state);
+    return (state == AL_PLAYING) ? 1: 0;
+}
+
+void sound_play(sounds_t sound, enum sounds_enum i)
+{
+    return alSourcePlay(sound.sounds[i].source);
+}
+
+sound_element_t load_sound_file(char *file)
+{
+    sound_element_t sound; 
     alGenSources((ALuint)1, &sound.source);
 
     alSourcef(sound.source, AL_PITCH, 1);
@@ -201,7 +218,7 @@ sound_t load_sound_file(sound_t sound, char *file)
     alSourcei(sound.source, AL_VELOCITY, AL_FALSE);
 
     alGenBuffers((ALuint)1, &sound.buffer);
-    
+
     ALsizei size, freq;
     ALenum format;
     ALvoid *data;
@@ -209,12 +226,14 @@ sound_t load_sound_file(sound_t sound, char *file)
 
     alutLoadWAVFile(file, &format, &data, &size, &freq, &loop);
     alBufferData(sound.buffer, format, data, size, freq);
+
+    alSourcei(sound.source, AL_BUFFER, sound.buffer);
     return sound;
 }
 
-sound_t sound_init()
+sounds_t sound_init()
 {
-    sound_t sound;
+    sounds_t sound;
     sound.device = alcOpenDevice(NULL);
     if (!sound.device) 
     {
@@ -229,6 +248,11 @@ sound_t sound_init()
         exit(1);
     }
 
+    sound.sounds[SOUND_LAUNCH]      = load_sound_file("launch.wav");
+    sound.sounds[SOUND_SHOOT]       = load_sound_file("shoot.wav");
+    sound.sounds[SOUND_BREAK]       = load_sound_file("break.wav");
+    sound.sounds[SOUND_GAME_OVER]   = load_sound_file("game_over.wav");
+    sound.sounds[SOUND_SELECT]      = load_sound_file("select.wav");
     return sound;
 }
 
@@ -283,7 +307,7 @@ x11_t global_init()
     xorg.v_window   = virtual_window_init(xorg, VW, VH);
     xorg.bg         = background_init(xorg);
     xorg.textures   = load_image("textures.png", 0, 0, xorg);
-    xorg.sound      = sound_init();
+    xorg.sounds     = sound_init();
     return xorg;
 }
 

@@ -20,13 +20,25 @@
 #include <AL/alc.h>
 #include <AL/alut.h>
 
+enum  sounds_enum {
+    SOUND_LAUNCH,
+    SOUND_SHOOT,
+    SOUND_BREAK,
+    SOUND_GAME_OVER,
+    SOUND_SELECT,
+    SOUND_MAX
+}; 
 
 typedef struct {
     ALuint source;
+    ALuint buffer;
+} sound_element_t;
+
+typedef struct {
     ALCcontext *context;
     ALCdevice *device;
-    ALuint buffer;
-} sound_t;
+    sound_element_t sounds[SOUND_MAX];
+} sounds_t;
 
 typedef struct { 
     int width;
@@ -68,7 +80,7 @@ typedef struct {
     xcb_setup_t *setup;
     background_t bg;
     image_t textures;
-    sound_t sound;
+    sounds_t sounds;
 } x11_t;
 
 typedef struct {
@@ -78,19 +90,13 @@ typedef struct {
     int h;
 } font_t;
 
-// // global variables
-// static xcb_connection_t *connection;
-// static xcb_screen_t     *screen;
-// static window_t          window;
-
 #define VW 300 
 #define VH 600
 
-int unload_sound_file(sound_t sound);
-int sound_play(sound_t sound);
-sound_t load_sound_file(sound_t sound, char *file);
-sound_t sound_init();
-int free_sound(sound_t sound);
+void sound_play(sounds_t sound, enum sounds_enum i);
+void sound_pause(sounds_t sound, enum sounds_enum i);
+char isSoundPlaying(sounds_t sound, enum sounds_enum i);
+sounds_t sound_init();
 
 void free_font(font_t font);
 int font_init(char *name, font_t *font);

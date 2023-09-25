@@ -1,14 +1,13 @@
 #include "objects.h"
+#include <AL/al.h>
 #include <stdlib.h>
 #include <xcb/xcb_image.h>
 #include <xcb/xproto.h>
 
 static image_t skin[MAX_SKINS];
-static sound_t break_sound;
 
 void unload_asteroids(obj *asteroids)
 {
-    unload_sound_file(break_sound);
     for (int i = 0; i < MAX_SKINS; i++)
         free(skin[i].data);
     free_obj(asteroids);
@@ -16,7 +15,6 @@ void unload_asteroids(obj *asteroids)
 
 void load_asteroids(x11_t xorg)
 {
-    break_sound = load_sound_file(xorg.sound, "break.wav");
     skin[0] = slice_texture(xorg.textures, 50 * 2, 0, 30, 30, 1);
     for (int i = 1; i < MAX_SKINS; i++) 
         skin[i] = resize_image(skin[0], skin[i - 1].width + 10, skin[i - 1].height + 10);
@@ -61,7 +59,7 @@ char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, x11_t
         else if (asteroid->entity.pos.y > VH || shot_collision(shots, asteroid->entity.pos))
         {
             if (asteroid->entity.pos.y < VH) 
-                sound_play(break_sound);
+                sound_play(xorg.sounds, SOUND_BREAK);
             
             if (*asteroids == asteroid) 
             {

@@ -1,14 +1,7 @@
 #include "global.h"
 #include "states.h" 
 #include "objects/objects.h"
-
-#include <AL/al.h>
 #include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <xcb/xcb_image.h>
-#include <xcb/xproto.h>
-
 
 #define PLAYER_SPEED 100 
 #define GRAVITY 50 
@@ -18,9 +11,6 @@ typedef struct {
     entity_t player;
     obj *asteroids;
     obj *shots;
-    sound_t shoot_sound;
-    sound_t game_over_sound;
-    sound_t accelerate_sound;
 } self_t;
 
 #define PLAYER_ACCELERATE  1
@@ -37,9 +27,6 @@ void play_state_load(x11_t xorg)
     state_machine[cur_state].self = malloc(sizeof(self_t)); 
     self_t *self = state_machine[cur_state].self;
 
-    self->shoot_sound = load_sound_file(xorg.sound, "shoot.wav");
-    self->game_over_sound = load_sound_file(xorg.sound, "game_over.wav");
-    self->accelerate_sound = load_sound_file(xorg.sound, "launch.wav");
     self->gc = xcb_generate_id(xorg.connection);
     xcb_create_gc(xorg.connection, self->gc, xorg.window.id, 0, NULL);
 
@@ -80,17 +67,13 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
         flags |= PLAYER_TURN_LEFT;
     }
     change_skins(flags);
-    if (flags &= PLAYER_ACCELERATE) {
-        int state;
-        alGetSourcei(self->accelerate_sound.source, AL_SOURCE_STATE, &state);
-        if (state != AL_PLAYING) {
-            sound_play(self->accelerate_sound);
-        }
+    if (flags &= PLAYER_ACCELERATE) 
+    {
+       if (!isSoundPlaying(xorg.sounds, SOUND_LAUNCH))
+            sound_play(xorg.sounds, SOUND_LAUNCH);
     }
-    else {
-        alSourcePause(self->accelerate_sound.source);
-    }
-
+    else
+        sound_pause(xorg.sounds, SOUND_LAUNCH);
     
     
     switch (keypress) {
@@ -100,7 +83,7 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
 
         case XK_space:
             shoot(&self->shots, self->player.pos);
-            sound_play(self->shoot_sound);
+            sound_play(xorg.sounds, SOUND_SHOOT);
             break;
     }
     self->player.pos.y = (int) round((double) self->player.pos.y  + dy);
@@ -113,9 +96,7 @@ void play_state_update(x11_t xorg, double dt, char KeyDown[], int keypress)
 
     if (update_asteroids(&self->asteroids, self->shots, self->player.pos, xorg, dt)) 
     {
-        sound_play(self->game_over_sound); 
-        unload_sound_file(self->accelerate_sound);
-        unload_sound_file(self->shoot_sound);
+        sound_play(xorg.sounds, SOUND_GAME_OVER); 
         free_obj(self->shots);
         unload_asteroids(self->asteroids);
         xcb_free_gc(xorg.connection, self->gc);

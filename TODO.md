@@ -26,9 +26,10 @@
    - [x] Make Font resizable
    - [x] Introduce Sound 
    - [x] Debug collision 
+   - [ ] Make sound table 
+   - [ ] Refactor, test, and improve code 
    - [ ] Make Render parallel for efficiency 
    - [ ] Do Game Mechanichs
-   - [ ] Refactor, test, and improve code 
    - [ ] Upload to Github
    - [ ] Make Windows Version
    - [ ] Make bundle to ship 
