@@ -9,13 +9,13 @@
 #include <freetype2/ft2build.h>
 #include <freetype2/freetype/freetype.h>
 
-#include "states/global.h"
+#include "global.h"
 #include "states/states.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb_image.h"
-#include "stb_image_resize.h"
+#include "../libs/stb_image.h"
+#include "../libs/stb_image_resize.h"
 
 #define BORDERW 20
 #define SECONDS 1000000
@@ -249,11 +249,11 @@ sounds_t sound_init()
         exit(1);
     }
 
-    sound.sounds[SOUND_LAUNCH]      = load_sound_file("launch.wav");
-    sound.sounds[SOUND_SHOOT]       = load_sound_file("shoot.wav");
-    sound.sounds[SOUND_BREAK]       = load_sound_file("break.wav");
-    sound.sounds[SOUND_GAME_OVER]   = load_sound_file("game_over.wav");
-    sound.sounds[SOUND_SELECT]      = load_sound_file("select.wav");
+    sound.sounds[SOUND_LAUNCH]      = load_sound_file("resources/launch.wav");
+    sound.sounds[SOUND_SHOOT]       = load_sound_file("resources/shoot.wav");
+    sound.sounds[SOUND_BREAK]       = load_sound_file("resources/break.wav");
+    sound.sounds[SOUND_GAME_OVER]   = load_sound_file("resources/game_over.wav");
+    sound.sounds[SOUND_SELECT]      = load_sound_file("resources/select.wav");
     return sound;
 }
 
@@ -307,10 +307,10 @@ x11_t global_init()
     xorg.window     = window_init(xorg); 
     xorg.v_window   = virtual_window_init(xorg, VW, VH);
     xorg.bg         = background_init(xorg);
-    xorg.textures   = load_image("textures.png", 0, 0, xorg);
+    xorg.textures   = load_image("resources/textures.png", 0, 0, xorg);
     xorg.sounds     = sound_init();
 
-    font_init("font.ttf", &xorg.font);
+    font_init("resources/font.ttf", &xorg.font);
     return xorg;
 }
 
@@ -474,8 +474,9 @@ int *map_keyboard(x11_t xorg, char KeyDown[])
 
 void change_state(x11_t xorg, int state)
 {
-    free(state_machine[cur_state].self);
-
+    if (state_machine[cur_state].self) 
+        free(state_machine[cur_state].self);
+    
     cur_state = state;
     if (cur_state >= number_of_states) 
     {
@@ -592,7 +593,7 @@ background_t background_init(x11_t xorg)
 {
     background_t bg = {
         .y = 0,
-        .image = load_image("bg.png", 0, 0, xorg),
+        .image = load_image("resources/bg.png", 0, 0, xorg),
         .pixmap = xcb_generate_id(xorg.connection)
     };
 

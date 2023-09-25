@@ -1,6 +1,5 @@
-#include "global.h"
 #include "states.h" 
-#include "objects/objects.h"
+#include "../objects/objects.h"
 #include <math.h>
 
 #define PLAYER_SPEED 100 

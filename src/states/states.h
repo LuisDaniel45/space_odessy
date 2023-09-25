@@ -1,5 +1,5 @@
 #pragma once
-#include "global.h"
+#include "../global.h"
 
 typedef enum {
     STATE_START,

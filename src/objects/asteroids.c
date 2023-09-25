@@ -1,8 +1,4 @@
 #include "objects.h"
-#include <AL/al.h>
-#include <stdlib.h>
-#include <xcb/xcb_image.h>
-#include <xcb/xproto.h>
 
 static image_t skin[MAX_SKINS];
 
