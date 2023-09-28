@@ -6,11 +6,9 @@ OBJECTS=src/objects/shots.c src/objects/asteroids.c
 
 SRC=src/main.c $(STATES) $(OBJECTS) $(UTIL)
 
-CFLAGS=-Wall -Wextra  
-
 CC=gcc
+LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lopenal -lalut
 
-LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lfreetype -lopenal -lalut
+${PROG}: ${SRC}
+	${CC} -o $@ ${SRC} ${LIBS} 
 
-${PROG}: src 
-	${CC} -o $@ ${SRC} ${LIBS} ${CFLAGS}

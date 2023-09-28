@@ -26,12 +26,16 @@
    - [x] Make Font resizable
    - [x] Introduce Sound 
    - [x] Debug collision 
-   - [ ] Make sound table 
-   - [ ] Refactor, test, and improve code 
-   - [ ] Make Render parallel for efficiency 
-   - [ ] Do Game Mechanichs
-   - [ ] Upload to Github
+   - [x] Make sound table 
    - [ ] Make Windows Version
+   - [ ] Refactor, test, and improve code 
+   - [ ] Make config menu 
+   - [ ] Make keys remapable 
+   - [ ] Add a score board  
+   - [ ] Make music for game
+   - [ ] Make a mute for music 
+   - [ ] Make Render parallel for efficiency 
+   - [ ] Upload to Github
    - [ ] Make bundle to ship 
 
 

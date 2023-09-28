@@ -1,64 +1,78 @@
-#include <freetype2/ft2build.h>
-#include <freetype2/freetype/freetype.h>
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "../../libs/stb_truetype.h"
 
 #include "../global.h"
 #include "font.h"
 
+void error(char *s);
+int read_file(char *file_name, unsigned char **file_content);
+
 void free_font(font_t font)
 {
-    FT_Done_Face(font.face);
-    FT_Done_FreeType(font.ft);
+    free(font);
 }
 
 int font_init(char *name, font_t *font)
 {
-    FT_Init_FreeType(&font->ft);
-    
-    if (FT_New_Face(font->ft, name, 0, &font->face)) 
-    {
-        printf("error loading font");
-        return 1; 
-    }
+    *font = malloc(sizeof(stbtt_fontinfo));
+    unsigned char *file_content;
+    int size = read_file(name, &file_content);
+    stbtt_InitFont(*font, file_content, stbtt_GetFontOffsetForIndex(file_content, 0));
     return 0;
 }
 
-int render_text(v_window_t window, font_t font, char *str, int dest_x, int dest_y, int color)
+void render_text(v_window_t window, font_t font, char *str, int dest_x, int dest_y, int size, int color)
 {
-    FT_Set_Pixel_Sizes(font.face, translate_x(window,font.w), translate_y(window, font.h));
-    int real_x = translate_x(window, dest_x);
-    int real_y = translate_y(window, dest_y) + font.h;
+    dest_x = translate_x(window, dest_x);
+    dest_y = translate_y(window, dest_y);
+    size   = translate_y(window, size);
 
-    for (char *ptr = str; *ptr; ptr++) 
-    {
-        if (FT_Load_Char(font.face, *ptr, FT_LOAD_RENDER))
+    float scale = stbtt_ScaleForPixelHeight(font, size);
+
+    int w, h;
+    for (char *ptr = str; *ptr; ptr++) {
+        if (*ptr == ' ') 
         {
-            printf("*ptr = %c\n", *ptr);
-            perror("Error: loading char\n");
-            return 1;
+            dest_x += w; 
+            continue;
         }
 
-        
-        FT_GlyphSlot g = ((FT_Face) font.face)->glyph;
-        char *bitmap = g->bitmap.buffer;
+        int xoff, yoff, advance, lsb;
+        unsigned char *bitmap = stbtt_GetCodepointBitmap(font, 0, scale, *ptr, &w,&h, &xoff,&yoff);
+        stbtt_GetCodepointHMetrics(font, *ptr, &advance, &lsb);
 
-        int w = g->bitmap.width; 
-        int h = g->bitmap.rows;
+        int dey = dest_y + size; 
+        for (int y = 0; y < h; y++) 
+            for (int x = 0;x < w;x++) 
+                if (bitmap[x + (y * w)]) 
+                    window.buffer[(x + dest_x) + ((y+dey+yoff) * window.w)] = color;
+        dest_x += (advance * scale);
+        free(bitmap);
+    }
+}
 
+int read_file(char *file_name, unsigned char **file_content)
+{
+    FILE *file = fopen(file_name, "rb");
+    if (!file) 
+        error("error opening file");
 
-        for (int y = 0; y < h && y + real_y < window.h; y++) 
-            for (int x = 0; x < w && x + real_x < window.w; x++) 
-            {
-                if (!bitmap[x + (y * w)])
-                    continue;
+    fseek(file, 0, SEEK_END);
+    int file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
 
-                int ny = y + real_y - g->bitmap_top;
-                if (ny < 0) 
-                    continue;
-                window.buffer[(x + real_x) + (ny * window.w)] = color;
-            }
-
-        real_x += g->advance.x >> 6;
+    *file_content = malloc(file_size);
+    if (fread(*file_content, 1, file_size, file) != file_size) {
+        free(*file_content);
+        error("Error: reading file");
     }
 
-    return 0;
+    fclose(file);
+    return file_size;
+}
+
+void error(char *s)
+{
+    perror(s);
+    exit(1);
 }

@@ -4,6 +4,9 @@
 #include <sys/types.h>
 #include <string.h>
 
+#define VW 300 
+#define VH 600
+
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
@@ -14,12 +17,14 @@
 #include "util/sound.h"
 #include "util/font.h"
 
+
 typedef struct {
     int y;
     int cur_height;
     xcb_pixmap_t pixmap;
     image_t image;
 } background_t;
+
 
 typedef struct {
     xcb_connection_t *connection;
@@ -32,9 +37,4 @@ typedef struct {
     sounds_t sounds;
     font_t font;
 } x11_t;
-
-
-#define VW 300 
-#define VH 600
-
 
