@@ -3,9 +3,32 @@
 
 #include <AL/al.h>
 #include <AL/alc.h>
-#include <AL/alut.h>
+#include <assert.h>
 
 #include "sound.h"
+
+#define ERR(msg, ...) {fprintf(stderr, msg); return -1;}
+
+static int read_file(char *file_name, unsigned char **file_content);
+char check_seqence(char *sequence, int sequence_size, char *buffer);
+char search_sequence(char *sequence, int sequence_size, char *buffer, int buffer_size);
+
+typedef struct {
+    short num_channels;
+    int sample_rate;
+    int byte_rate;
+    short block_align;
+    short bits_per_sample;
+    void *data;
+    int data_size;
+    void *file_data;
+    int file_size;
+} wav_file_info_t;
+
+int read_riff_chunk(wav_file_info_t *info);
+int read_fmt_subchunk(wav_file_info_t *info);
+int read_data_subchunk(wav_file_info_t *info);
+int load_wav_file(char *file, wav_file_info_t *info);
 
 int unload_sound_file(sound_element_t sound);
 sound_element_t load_sound_file(char *file);
@@ -57,14 +80,12 @@ sound_element_t load_sound_file(char *file)
 
     alGenBuffers((ALuint)1, &sound.buffer);
 
-    ALsizei size, freq;
-    ALenum format;
-    ALvoid *data;
-    ALboolean loop = AL_FALSE;
+    wav_file_info_t info;
+    assert(load_wav_file(file, &info) == 0);
+    ALenum format = AL_FORMAT_MONO8 + ((info.num_channels - 1) * 2) + 
+                                      ((info.bits_per_sample/8) - 1); 
 
-    alutLoadWAVFile(file, &format, &data, &size, &freq, &loop);
-    alBufferData(sound.buffer, format, data, size, freq);
-
+    alBufferData(sound.buffer, format, info.data, info.data_size, info.sample_rate);
     alSourcei(sound.source, AL_BUFFER, sound.buffer);
     return sound;
 }
@@ -92,5 +113,145 @@ sounds_t sound_init()
     sound.sounds[SOUND_GAME_OVER]   = load_sound_file("resources/game_over.wav");
     sound.sounds[SOUND_SELECT]      = load_sound_file("resources/select.wav");
     return sound;
+}
+
+
+int load_wav_file(char *file, wav_file_info_t *info)
+{
+    info->file_size = read_file(file, &info->file_data); 
+    if (info->file_size == -1) 
+        return 1;
+
+    if (read_riff_chunk(info))
+    {
+        free(info->file_data);
+        return 1;
+    }
+
+    if (read_fmt_subchunk(info))
+    {
+        free(info->file_data);
+        return 1;
+    }
+    if (read_data_subchunk(info))
+    {
+        free(info->file_data);
+        return 1;
+    }
+
+    return 0;
+}
+
+int read_riff_chunk(wav_file_info_t *info)
+{
+    if(check_seqence("RIFF", 4, info->file_data))
+        ERR("Error: Sequence Riff Fail")
+    info->data = info->file_data + 4;
+
+    if (*(int*)info->data != info->file_size - 8)
+        ERR("Error: Size does not match with chunk size\n");
+    info->data += 4;
+
+    if(check_seqence("WAVE", 4, info->data))
+        ERR("Error: Sequence Riff fail\n");
+    info->data +=  4;
+
+    return 0;
+}
+
+int read_fmt_subchunk(wav_file_info_t *info)
+{
+    if(check_seqence("fmt ", 4, info->data))
+        ERR("Error: Sequence fmt fail");
+    info->data += 4;
+
+    short subchunk_size = *(int*)info->data;
+    info->data += 4;
+
+    if (*(short*)info->data != 1)
+        ERR("Error: Audio format not supported, only pcm");
+    info->data += 2;
+
+    info->num_channels = *(short*)info->data;
+    info->data += 2;
+
+    info->sample_rate = *(int*)info->data;
+    info->data += 4;
+
+    info->byte_rate =  *(int*)info->data;
+    info->data += 4;
+
+    info->block_align =  *(short*)info->data;
+    info->data += 2;
+
+    info->bits_per_sample =  *(short*)info->data;
+    info->data += 2;
+
+    int expected_byte_rate = info->sample_rate * info->num_channels * info->bits_per_sample / 8;
+    if (info->byte_rate != expected_byte_rate) 
+        ERR("Error: Byte rate does not match with expected value\n");
+
+    int expected_block_align = info->num_channels * info->bits_per_sample / 8;
+    if (info->block_align != expected_block_align) 
+        ERR("Error: Block align and expected does not match\n");
+
+    return 0;
+}
+
+int read_data_subchunk(wav_file_info_t *info)
+{
+
+    int ret = search_sequence("data", 4, info->data, info->file_size);
+    if (!ret) 
+        ERR("Error: data chunk not found\n");
+    info->data += ret + 1;
+
+    info->data_size = *(int*)info->data;
+    info->data += 4;
+
+    return 0;
+}
+
+
+char search_sequence(char *sequence, int sequence_size, char *buffer, int buffer_size)
+{
+    for (int i = 0, counter = 0; i < buffer_size; i++) {
+        if (sequence[counter] == buffer[i]) {
+            counter++;
+            if (counter == sequence_size) 
+                return i;
+        }
+        else 
+            counter = 0;
+    }
+    return 0;
+}
+char check_seqence(char *sequence, int sequence_size, char *buffer)
+{
+    for (int i = 0; i < sequence_size; i++) {
+        if (sequence[i] != buffer[i]) 
+            return 1;
+    }
+    return 0;
+}
+
+static int read_file(char *file_name, unsigned char **file_content)
+{
+    FILE *file = fopen(file_name, "rb");
+    if (!file) 
+        ERR("Error: opening file");
+
+    fseek(file, 0, SEEK_END);
+    int file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    *file_content = malloc(file_size);
+    if (fread(*file_content, 1, file_size, file) != file_size) {
+        free(*file_content);
+        ERR("Error: reading file");
+    }
+
+    fclose(file);
+    return file_size;
 }
 
