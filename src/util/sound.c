@@ -13,18 +13,6 @@ static int read_file(char *file_name, unsigned char **file_content);
 char check_seqence(char *sequence, int sequence_size, char *buffer);
 char search_sequence(char *sequence, int sequence_size, char *buffer, int buffer_size);
 
-typedef struct {
-    short num_channels;
-    int sample_rate;
-    int byte_rate;
-    short block_align;
-    short bits_per_sample;
-    void *data;
-    int data_size;
-    void *file_data;
-    int file_size;
-} wav_file_info_t;
-
 int read_riff_chunk(wav_file_info_t *info);
 int read_fmt_subchunk(wav_file_info_t *info);
 int read_data_subchunk(wav_file_info_t *info);
@@ -45,6 +33,7 @@ int free_sound(sounds_t sound)
 
 int unload_sound_file(sound_element_t sound)
 {
+    free(sound.info.file_data);
     alDeleteSources(1, &sound.source);
     alDeleteBuffers(1, &sound.buffer);
     return 0;
@@ -80,12 +69,14 @@ sound_element_t load_sound_file(char *file)
 
     alGenBuffers((ALuint)1, &sound.buffer);
 
-    wav_file_info_t info;
-    assert(load_wav_file(file, &info) == 0);
-    ALenum format = AL_FORMAT_MONO8 + ((info.num_channels - 1) * 2) + 
-                                      ((info.bits_per_sample/8) - 1); 
+    assert(load_wav_file(file, &sound.info) == 0);
+    ALenum format = AL_FORMAT_MONO8 + ((sound.info.num_channels - 1) * 2) + 
+                                      ((sound.info.bits_per_sample/8) - 1); 
 
-    alBufferData(sound.buffer, format, info.data, info.data_size, info.sample_rate);
+    alBufferData(sound.buffer, format, 
+                 sound.info.data, 
+                 sound.info.data_size, 
+                 sound.info.sample_rate);
     alSourcei(sound.source, AL_BUFFER, sound.buffer);
     return sound;
 }

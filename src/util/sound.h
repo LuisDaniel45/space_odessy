@@ -9,6 +9,19 @@ enum  sounds_enum {
 }; 
 
 typedef struct {
+    short num_channels;
+    int sample_rate;
+    int byte_rate;
+    short block_align;
+    short bits_per_sample;
+    void *data;
+    int data_size;
+    void *file_data;
+    int file_size;
+} wav_file_info_t;
+
+typedef struct {
+    wav_file_info_t info;
     int source;
     int buffer;
 } sound_element_t;

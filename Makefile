@@ -7,7 +7,7 @@ OBJECTS=src/objects/shots.c src/objects/asteroids.c
 SRC=src/main.c $(STATES) $(OBJECTS) $(UTIL)
 
 CC=gcc
-LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lopenal -lalut
+LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lopenal 
 
 ${PROG}: ${SRC}
 	${CC} -o $@ ${SRC} ${LIBS} 
