@@ -1,11 +1,22 @@
+#include "../global.h"
+
+#ifdef linux
+
 #include <xcb/shm.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_image.h>
+#else /* ifdef linux */
 
-#include "../global.h" 
+#include <windows.h>
+#include <wingdi.h>
+#endif /* ifdef Win32 */
+
 #include "window.h"
 
+
+#ifdef linux
 
 void window_free(xcb_connection_t *c, window_t window)
 {
@@ -14,14 +25,14 @@ void window_free(xcb_connection_t *c, window_t window)
     xcb_destroy_window(c, window.id);
 }
 
-window_t window_init(xcb_connection_t *c, xcb_screen_t *s)
+window_t window_init(xcb_connection_t *c, xcb_screen_t *s, int w, int h, char *title)
 {
     window_t window = {
         .x = s->width_in_millimeters / 2,  
         .y = 0,
-        .width  = VW * 1.6, 
-        .height = VH * 1.6, 
-        .title  = "Space Odessy",
+        .width  = w, 
+        .height = h, 
+        .title  = title,
         .id     = xcb_generate_id(c),
         .gc     = xcb_generate_id(c),
     };
@@ -30,8 +41,8 @@ window_t window_init(xcb_connection_t *c, xcb_screen_t *s)
     // set window config
     int mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     int values[] = {0x00010114, XCB_EVENT_MASK_KEY_RELEASE | 
-                                XCB_EVENT_MASK_KEY_PRESS   | 
-                                XCB_EVENT_MASK_EXPOSURE    };
+        XCB_EVENT_MASK_KEY_PRESS   | 
+            XCB_EVENT_MASK_EXPOSURE    };
 
     // create window 
     xcb_create_window(c, s->root_depth, window.id, s->root,                
@@ -106,3 +117,90 @@ void free_v_window(v_window_t v_window, xcb_connection_t *con)
     shmdt(v_window.info.shmaddr);
     xcb_free_pixmap(con, v_window.pix);
 }
+
+#else
+
+void window_free(window_t window)
+{
+    UnregisterClassA(window.class.lpszClassName, window.class.hInstance);
+}
+
+window_t window_init(void (*proc), HINSTANCE hinst, char*title, int w, int h)
+{
+    window_t window = {
+        .class = {0},
+        .width = w,
+        .height = h,
+        .x = 0,
+        .y = 0,
+        .title = title
+    };
+
+    window.class.hbrBackground = (HBRUSH) COLOR_WINDOW;
+    window.class.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    window.class.hInstance     = hinst;
+    window.class.lpszClassName = L"window_class";
+    window.class.lpfnWndProc   = proc;
+    if (!RegisterClassW(&window.class))
+    {
+        perror("Erorr: Registering class\n");
+        exit(1);
+    }
+
+    window.id = CreateWindowW(window.class.lpszClassName,
+                              window.title, 
+                              WS_OVERLAPPEDWINDOW | WS_VISIBLE, 
+                              window.x, window.y, 
+                              window.width, window.height, 
+                              NULL, NULL, NULL, NULL);
+
+    window.hdc = GetDC(window.id);
+    return window;
+}
+
+void free_v_window(v_window_t window)
+{
+    DeleteDC(window.hdc);
+}
+
+v_window_t virtual_window_init(HDC hdc, int w, int h)
+{
+    v_window_t window = {
+        .w = w,
+        .h = h,
+    };
+
+    window.hdc = CreateCompatibleDC(hdc);
+
+    BITMAPINFO bm = {0};
+    bm.bmiHeader.biSize = w*h*4;
+    bm.bmiHeader.biWidth = w;
+    bm.bmiHeader.biHeight = -h;
+    bm.bmiHeader.biPlanes = 1;
+    bm.bmiHeader.biBitCount = 32;
+    bm.bmiHeader.biCompression = BI_RGB;
+
+    void *data = NULL;
+    HBITMAP bitmap = CreateDIBSection(hdc, &bm, DIB_RGB_COLORS, &data, NULL, 0);
+    SelectObject(window.hdc, bitmap);
+
+    BITMAP test;
+    GetObject(bitmap, sizeof(test), &test);
+    window.buffer = test.bmBits;
+
+    DeleteObject(bitmap);
+    return window;
+}
+
+
+RECT translate_rect_pos(v_window_t window, RECT rect)
+{
+    return (RECT) { 
+            .left = translate_x(window, rect.left),
+            .top = translate_y(window, rect.top),
+            .right = translate_x(window, rect.right),
+            .bottom = translate_y(window, rect.bottom)
+    };
+}
+
+#endif /* ifdef linux */

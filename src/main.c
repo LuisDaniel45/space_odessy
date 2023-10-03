@@ -135,7 +135,12 @@ x11_t global_init()
     xorg.connection = xcb_connect(NULL, NULL);
     xorg.setup      = xcb_get_setup(xorg.connection);
     xorg.screen     = xcb_setup_roots_iterator(xorg.setup).data;
-    xorg.window     = window_init(xorg.connection, xorg.screen); 
+
+    xorg.window     = window_init(xorg.connection, 
+                                  xorg.screen, 
+                                  VW * 1.6, VH * 1.6, 
+                                  "Space Odessy"); 
+
     xorg.v_window   = virtual_window_init(xorg.connection, 
                                           xorg.screen, 
                                           xorg.window.id, VW, VH);

@@ -5,10 +5,16 @@ STATES=src/states/start.c src/states/play.c src/states/game_over.c
 OBJECTS=src/objects/shots.c src/objects/asteroids.c
 
 SRC=src/main.c $(STATES) $(OBJECTS) $(UTIL)
-
 CC=gcc
 LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lopenal 
 
+WIN_SRC=src/win.c src/util/font.c src/util/window.c src/util/image.c
+WIN_CC=x86_64-w64-mingw32-gcc
+WIN_LIBS=-lgdi32 -lm 
+
 ${PROG}: ${SRC}
 	${CC} -o $@ ${SRC} ${LIBS} 
+
+win:
+	${WIN_CC} $(WIN_SRC) -o win ${WIN_LIBS} -static 
 

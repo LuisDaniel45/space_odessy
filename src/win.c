@@ -1,28 +1,19 @@
-#include <stdio.h>
-#include <windows.h>
-#include <wingdi.h>
+#undef linux
+#define _WIN32_LEAN_AND_MEAN
+#include "global.h"
 
 LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
 
+background_t background_init(HDC hdc);
+void resize_bg(background_t *bg, int w, int h, HDC hdc);
+
+void render_end(v_window_t window, HDC hdc, int w);
+void render_begin(v_window_t window, background_t bg);
+window_t window; 
+
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 {
-    WNDCLASSW wc = {0};
-    wc.hbrBackground = (HBRUSH) COLOR_WINDOW;
-    wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    wc.hInstance     = hInst;
-    wc.lpszClassName = L"window_class";
-    wc.lpfnWndProc   = WindowProcedure;
-    if (!RegisterClassW(&wc))
-    {
-        perror("Erorr: Registering class\n");
-        return 1;
-    }
-
-    CreateWindowW(L"window_class", 
-                  L"My Window", 
-                  WS_OVERLAPPED | WS_VISIBLE, 
-                  0, 0, 500, 500, 
-                  NULL, NULL, NULL, NULL);
+    window = window_init(WindowProcedure, hInst, "Space Odessy", VW, VH);
 
     MSG msg = {0};
     while (GetMessage(&msg, NULL, 0, 0)) 
@@ -31,6 +22,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         DispatchMessage(&msg);
     }
 
+    window_free(window);
     return 0;
 }
 
@@ -38,23 +30,29 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
     static int x = 20, y = 10;
+    static image_t textures;
+    static image_t player;
+    static v_window_t v_window;
+    static background_t bg;
+    static font_t font;
+
     switch (msg) {
         case WM_CHAR:
             switch (wp) {
                 case 'h':
-                    y -= SPEED;
-                    break;
-
-                case 'j':
-                    x += SPEED;
-                    break;
-
-                case 'k':
                     x -= SPEED;
                     break;
 
-                case 'l':
+                case 'j':
                     y += SPEED;
+                    break;
+
+                case 'k':
+                    y -= SPEED;
+                    break;
+
+                case 'l':
+                    x += SPEED;
                     break;
 
                 case 'q':
@@ -69,34 +67,86 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     break;
 
             }
-            InvalidateRgn(hwnd, NULL, TRUE);
+            render_begin(v_window, bg);
+            render_image(v_window, player, x, y);
+            render_text(v_window, font, "Hello World", (v_window.w / 2) - (20 * 6), 0, 20, 0xffffffff);
+            render_end(v_window, window.hdc, window.width);
             break;
+
 
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
 
-        case WM_PAINT: {
-            LPPAINTSTRUCT p;
-            HDC hdc = BeginPaint(hwnd, p);
+        case WM_CREATE:
+            textures = load_image("resources/textures.png", 0, 0);
+            player = slice_texture(textures, 0, 0, 50, 50, 0); 
+            v_window = virtual_window_init(window.hdc, VW, VH);
+            bg = background_init(window.hdc);
+            font_init("resources/font.ttf", &font);
+            break;
+            
+        case WM_SIZE:
+            window.width = LOWORD(lp); 
+            window.height = HIWORD(lp); 
 
-            HBRUSH blue = CreateSolidBrush(RGB(0, 0, 255)); 
-            RECT rect = {
-                .top = y,
-                .left = x,
-                .right = x + 50,
-                .bottom = y + 50
-            };
-            FillRect(hdc, &rect, blue);
-            DeleteObject(blue);
+            int rw = (int) ((float) (window.height * VW) / VH);
+            resize_bg(&bg, rw, window.height, window.hdc);
+            free_v_window(v_window);
+            v_window = virtual_window_init(window.hdc, rw, window.height);
 
-            EndPaint(hwnd, p);
-        }
-
+            FillRect(window.hdc, (RECT[]) {{
+                        .top = 0,
+                        .left = 0,
+                        .right = window.width,
+                        .bottom = window.height 
+                    }}, (HBRUSH)COLOR_WINDOW);
+            break;
 
         default:
             return DefWindowProcW(hwnd, msg, wp, lp);
 
     
     }
+}
+
+void resize_bg(background_t *bg, int w, int h, HDC hdc)
+{
+    int rh = (bg->image.height * h) / VH;
+    bg->cur_height = rh;
+    image_t image = resize_image(bg->image, w, rh);
+    HBITMAP bitmap = CreateCompatibleBitmap(hdc, w, rh); 
+    SetBitmapBits(bitmap, w*rh*4, image.data);
+    SelectObject(bg->hdc, bitmap);
+    DeleteObject(bitmap);
+}
+
+background_t background_init(HDC hdc)
+{
+    background_t bg = {
+        .y = 0,
+        .cur_height = VH,
+        .image = load_image("resources/bg.png", 0, 0),
+        .hdc = CreateCompatibleDC(hdc)
+    };
+
+    HBITMAP bitmap = CreateCompatibleBitmap(hdc, bg.image.width, bg.image.height); 
+    SetBitmapBits(bitmap, VW*VH* 4, bg.image.data);
+    SelectObject(bg.hdc, bitmap);
+    DeleteObject(bitmap);
+    return bg;
+}
+
+void render_end(v_window_t window, HDC hdc, int w) 
+{
+    BitBlt(hdc, (w/2) - (window.w/2), 0, 
+           window.w, window.h, 
+           window.hdc, 0, 0, SRCCOPY);
+}
+
+void render_begin(v_window_t window, background_t bg)
+{
+    BitBlt(window.hdc, 0, 0, 
+           window.w, window.h, 
+           bg.hdc, 0, 0, SRCCOPY);
 }

@@ -1,12 +1,15 @@
 #pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <string.h>
 
 #define VW 300 
 #define VH 600
 
+#ifdef linux 
+
+#include <sys/types.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
@@ -37,4 +40,21 @@ typedef struct {
     sounds_t sounds;
     font_t font;
 } x11_t;
+#else 
 
+#include <windows.h> 
+#include <wingdi.h>
+
+#include "util/window.h"
+#include "util/image.h"
+#include "util/font.h"
+
+typedef struct {
+    int y;
+    int cur_height;
+    image_t image;
+    HDC hdc;
+} background_t;
+
+
+#endif
