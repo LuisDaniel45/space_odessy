@@ -1,3 +1,4 @@
+#include <stdio.h>
 #undef linux
 #define _WIN32_LEAN_AND_MEAN
 #include "global.h"
@@ -15,6 +16,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 {
     window = window_init(WindowProcedure, hInst, "Space Odessy", VW, VH);
 
+    SetTimer(window.id, 1, 0, NULL);
     MSG msg = {0};
     while (GetMessage(&msg, NULL, 0, 0)) 
     {
@@ -35,6 +37,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     static v_window_t v_window;
     static background_t bg;
     static font_t font;
+    static sounds_t sound;
 
     switch (msg) {
         case WM_CHAR:
@@ -55,6 +58,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     x += SPEED;
                     break;
 
+                case 'p':
+                    break;
+
                 case 'q':
                     PostQuitMessage(0);
                     break;
@@ -69,7 +75,6 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             }
             render_begin(v_window, bg);
             render_image(v_window, player, x, y);
-            render_text(v_window, font, "Hello World", (v_window.w / 2) - (20 * 6), 0, 20, 0xffffffff);
             render_end(v_window, window.hdc, window.width);
             break;
 
@@ -83,6 +88,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             player = slice_texture(textures, 0, 0, 50, 50, 0); 
             v_window = virtual_window_init(window.hdc, VW, VH);
             bg = background_init(window.hdc);
+            sound = sound_init();
             font_init("resources/font.ttf", &font);
             break;
             

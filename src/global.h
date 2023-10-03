@@ -47,6 +47,7 @@ typedef struct {
 
 #include "util/window.h"
 #include "util/image.h"
+#include "util/sound.h"
 #include "util/font.h"
 
 typedef struct {

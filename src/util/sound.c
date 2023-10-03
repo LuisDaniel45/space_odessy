@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef linux
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <assert.h>
+#endif
 
 #include "sound.h"
 
@@ -21,6 +23,7 @@ int load_wav_file(char *file, wav_file_info_t *info);
 int unload_sound_file(sound_element_t sound);
 sound_element_t load_sound_file(char *file);
 
+#ifdef linux
 int free_sound(sounds_t sound) 
 {
     for (int i = 0; i < SOUND_MAX; i++) 
@@ -105,6 +108,16 @@ sounds_t sound_init()
     sound.sounds[SOUND_SELECT]      = load_sound_file("resources/select.wav");
     return sound;
 }
+#else
+
+int free_sound(sounds_t sound){} 
+int unload_sound_file(sound_element_t sound){}
+void sound_pause(sounds_t sound, enum sounds_enum i) {}
+
+char isSoundPlaying(sounds_t sound, enum sounds_enum i) {}
+void sound_play(sounds_t sound, enum sounds_enum i) {}
+sounds_t sound_init() {}
+#endif 
 
 
 int load_wav_file(char *file, wav_file_info_t *info)

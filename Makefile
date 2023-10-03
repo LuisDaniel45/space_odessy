@@ -8,7 +8,7 @@ SRC=src/main.c $(STATES) $(OBJECTS) $(UTIL)
 CC=gcc
 LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lopenal 
 
-WIN_SRC=src/win.c src/util/font.c src/util/window.c src/util/image.c
+WIN_SRC=src/win.c $(UTIL) 
 WIN_CC=x86_64-w64-mingw32-gcc
 WIN_LIBS=-lgdi32 -lm 
 
