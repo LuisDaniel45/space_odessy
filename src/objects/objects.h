@@ -18,14 +18,14 @@ typedef struct node {
 #define MAX_SKINS 5
 void shoot(obj **, xcb_rectangle_t);
 void update_shots(obj**, double);
-void render_shots(obj *shots, x11_t xorg, xcb_gcontext_t gc);
+void render_shots(obj *shots, global_t xorg, xcb_gcontext_t gc);
 char shot_collision(obj*, xcb_rectangle_t );
 
 // asteroids mechanics 
 #define ASTEROIDS_SPEED 300 
-void load_asteroids(x11_t);
-void spawn_asteroids(x11_t xorg, obj **asteroids);
-char update_asteroids(obj **, obj *, xcb_rectangle_t, x11_t, double);
+void load_asteroids(global_t);
+void spawn_asteroids(global_t xorg, obj **asteroids);
+char update_asteroids(obj **, obj *, xcb_rectangle_t, global_t, double);
 void render_asteroids(obj *asteroids, v_window_t window);
 void unload_asteroids(obj *asteroids);
 

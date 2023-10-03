@@ -9,20 +9,20 @@
 #define SECONDS 1000000
 #define BG_SPEED 100
 
-x11_t global_init();
-void  free_global(x11_t xorg);
+global_t global_init();
+void  free_global(global_t xorg);
 
-background_t background_init(x11_t xorg);
-void resize_bg(x11_t xorg, background_t *bg, int width, int height);
+background_t background_init(global_t xorg);
+void resize_bg(global_t xorg, background_t *bg, int width, int height);
 void bg_free(xcb_connection_t *c, background_t bg);
 
-int *map_keyboard(x11_t xorg, char KeyDown[]);
-void render_begin(x11_t xorg);
-void render_end(x11_t xorg);
+int *map_keyboard(global_t xorg, char KeyDown[]);
+void render_begin(global_t xorg);
+void render_end(global_t xorg);
 
 int main(int argc, char *argv[])
 {
-    x11_t xorg = global_init();
+    global_t xorg = global_init();
 
     char KeyDown[255];
     int *keyboard = map_keyboard(xorg, KeyDown);
@@ -118,7 +118,7 @@ exit:
     return 0;
 }
 
-void free_global(x11_t xorg)
+void free_global(global_t xorg)
 {
     free_font(xorg.font);
     free_sound(xorg.sounds);
@@ -129,9 +129,9 @@ void free_global(x11_t xorg)
     xcb_disconnect(xorg.connection);
 }
 
-x11_t global_init()
+global_t global_init()
 {
-    x11_t xorg; 
+    global_t xorg; 
     xorg.connection = xcb_connect(NULL, NULL);
     xorg.setup      = xcb_get_setup(xorg.connection);
     xorg.screen     = xcb_setup_roots_iterator(xorg.setup).data;
@@ -154,7 +154,7 @@ x11_t global_init()
     return xorg;
 }
 
-int *map_keyboard(x11_t xorg, char KeyDown[])
+int *map_keyboard(global_t xorg, char KeyDown[])
 {
     xcb_get_keyboard_mapping_reply_t* keyboard_mapping = 
         xcb_get_keyboard_mapping_reply(xorg.connection,
@@ -175,7 +175,7 @@ int *map_keyboard(x11_t xorg, char KeyDown[])
     return keyboard;
 }     
 
-void change_state(x11_t xorg, int state)
+void change_state(global_t xorg, int state)
 {
     if (state_machine[cur_state].self) 
         free(state_machine[cur_state].self);
@@ -190,7 +190,7 @@ void change_state(x11_t xorg, int state)
     state_machine[cur_state].load(xorg);
 } 
 
-background_t background_init(x11_t xorg)
+background_t background_init(global_t xorg)
 {
     background_t bg = {
         .y = 0,
@@ -212,7 +212,7 @@ void bg_free(xcb_connection_t *c, background_t bg)
     free(bg.image.data);
 }
 
-void resize_bg(x11_t xorg, background_t *bg, int width, int height)
+void resize_bg(global_t xorg, background_t *bg, int width, int height)
 {
     xcb_free_pixmap(xorg.connection, bg->pixmap);
     bg->pixmap = xcb_generate_id(xorg.connection);
@@ -228,7 +228,7 @@ void resize_bg(x11_t xorg, background_t *bg, int width, int height)
     xcb_image_destroy(tmp);
 }
 
-void render_begin(x11_t xorg) 
+void render_begin(global_t xorg) 
 {
     int h = xorg.v_window.h;
     if (xorg.bg.y < xorg.v_window.h)
@@ -254,7 +254,7 @@ void render_begin(x11_t xorg)
     );
 }
 
-void render_end(x11_t xorg)
+void render_end(global_t xorg)
 {
     xcb_request_check(xorg.connection,
         xcb_copy_area(

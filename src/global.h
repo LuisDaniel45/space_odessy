@@ -39,7 +39,7 @@ typedef struct {
     image_t textures;
     sounds_t sounds;
     font_t font;
-} x11_t;
+} global_t;
 #else 
 
 #include <windows.h> 
@@ -56,6 +56,15 @@ typedef struct {
     image_t image;
     HDC hdc;
 } background_t;
+
+typedef struct {
+    window_t window;
+    v_window_t v_window;
+    background_t bg;
+    image_t textures;
+    sounds_t sounds;
+    font_t font;
+} global_t;
 
 
 #endif

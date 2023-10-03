@@ -3,6 +3,9 @@
 #define _WIN32_LEAN_AND_MEAN
 #include "global.h"
 
+#define SECONDS 1000
+#define BG_SPEED 100
+
 LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
 
 background_t background_init(HDC hdc);
@@ -10,72 +13,63 @@ void resize_bg(background_t *bg, int w, int h, HDC hdc);
 
 void render_end(v_window_t window, HDC hdc, int w);
 void render_begin(v_window_t window, background_t bg);
-window_t window; 
+
+global_t g;
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 {
-    window = window_init(WindowProcedure, hInst, "Space Odessy", VW, VH);
+    g.window = window_init(WindowProcedure, hInst, L"Space Odessy", VW, VH);
 
-    SetTimer(window.id, 1, 0, NULL);
+    int counter = 0;
+    long time = 0;
+    double dt = 100.0 / SECONDS;
+    const int max_updates = 1; 
+    const long time_per_frame = SECONDS / 60;
+    long start = 0, end = 0;
+    SetTimer(g.window.id, 1, 0, NULL);
+
     MSG msg = {0};
     while (GetMessage(&msg, NULL, 0, 0)) 
     {
+        if (counter > max_updates) 
+        {
+            dt = (double)time / SECONDS;
+
+            if (time_per_frame > time)
+                Sleep(time_per_frame - time);
+
+            render_begin(g.v_window, g.bg);
+            render_end(g.v_window, g.window.hdc, g.window.width);
+
+            counter = 0;
+            time = 0;
+        }
+
+        end = msg.time;
+        time += end - start; 
+        start = end;
+
         TranslateMessage(&msg);
         DispatchMessage(&msg);
+
+        // update 
+        counter++;
     }
 
-    window_free(window);
+    window_free(g.window);
     return 0;
 }
 
-#define SPEED 10
+
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
-    static int x = 20, y = 10;
-    static image_t textures;
-    static image_t player;
-    static v_window_t v_window;
-    static background_t bg;
-    static font_t font;
-    static sounds_t sound;
 
     switch (msg) {
         case WM_CHAR:
-            switch (wp) {
-                case 'h':
-                    x -= SPEED;
-                    break;
-
-                case 'j':
-                    y += SPEED;
-                    break;
-
-                case 'k':
-                    y -= SPEED;
-                    break;
-
-                case 'l':
-                    x += SPEED;
-                    break;
-
-                case 'p':
-                    break;
-
-                case 'q':
-                    PostQuitMessage(0);
-                    break;
-
-                case VK_RETURN:
-                    break;
-
-                default:
-                    printf("%i\n", VK_RETURN);
-                    break;
-
+            if (wp == 'q')
+            {
+                PostQuitMessage(0);
             }
-            render_begin(v_window, bg);
-            render_image(v_window, player, x, y);
-            render_end(v_window, window.hdc, window.width);
             break;
 
 
@@ -84,28 +78,27 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_CREATE:
-            textures = load_image("resources/textures.png", 0, 0);
-            player = slice_texture(textures, 0, 0, 50, 50, 0); 
-            v_window = virtual_window_init(window.hdc, VW, VH);
-            bg = background_init(window.hdc);
-            sound = sound_init();
-            font_init("resources/font.ttf", &font);
+            g.textures = load_image("resources/textures.png", 0, 0);
+            g.v_window = virtual_window_init(g.window.hdc, VW, VH);
+            g.bg = background_init(g.window.hdc);
+            g.sounds = sound_init();
+            font_init("resources/font.ttf", &g.font);
             break;
             
         case WM_SIZE:
-            window.width = LOWORD(lp); 
-            window.height = HIWORD(lp); 
+            g.window.width = LOWORD(lp); 
+            g.window.height = HIWORD(lp); 
 
-            int rw = (int) ((float) (window.height * VW) / VH);
-            resize_bg(&bg, rw, window.height, window.hdc);
-            free_v_window(v_window);
-            v_window = virtual_window_init(window.hdc, rw, window.height);
+            int rw = (int) ((float) (g.window.height * VW) / VH);
+            resize_bg(&g.bg, rw, g.window.height, g.window.hdc);
+            free_v_window(g.v_window);
+            g.v_window = virtual_window_init(g.window.hdc, rw, g.window.height);
 
-            FillRect(window.hdc, (RECT[]) {{
+            FillRect(g.window.hdc, (RECT[]) {{
                         .top = 0,
                         .left = 0,
-                        .right = window.width,
-                        .bottom = window.height 
+                        .right = g.window.width,
+                        .bottom = g.window.height 
                     }}, (HBRUSH)COLOR_WINDOW);
             break;
 

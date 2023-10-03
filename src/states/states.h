@@ -10,24 +10,24 @@ typedef enum {
 typedef struct { 
     states_id id;
     void *self;
-    void (*load)(x11_t);
-    void (*render)(x11_t);
-    void (*update)(x11_t, double, char[], int);
+    void (*load)(global_t);
+    void (*render)(global_t);
+    void (*update)(global_t, double, char[], int);
 } state_t;
 
-void start_state_load(x11_t);
-void start_state_render(x11_t);
-void start_state_update(x11_t, double, char[], int);
+void start_state_load(global_t);
+void start_state_render(global_t);
+void start_state_update(global_t, double, char[], int);
 
-void play_state_load(x11_t);
-void play_state_render(x11_t);
-void play_state_update(x11_t, double, char[], int);
+void play_state_load(global_t);
+void play_state_render(global_t);
+void play_state_update(global_t, double, char[], int);
 
-void game_over_state_load(x11_t);
-void game_over_state_render(x11_t);
-void game_over_state_update(x11_t, double, char[], int);
+void game_over_state_load(global_t);
+void game_over_state_render(global_t);
+void game_over_state_update(global_t, double, char[], int);
 
-void change_state(x11_t xorg, int state);
+void change_state(global_t xorg, int state);
     
 
 static const int number_of_states = STATE_GAME_OVER + 1;

@@ -9,14 +9,14 @@ void unload_asteroids(obj *asteroids)
     free_obj(asteroids);
 }
 
-void load_asteroids(x11_t xorg)
+void load_asteroids(global_t g)
 {
-    skin[0] = slice_texture(xorg.textures, 50 * 2, 0, 30, 30, 1);
+    skin[0] = slice_texture(g.textures, 50 * 2, 0, 30, 30, 1);
     for (int i = 1; i < MAX_SKINS; i++) 
         skin[i] = resize_image(skin[0], skin[i - 1].width + 10, skin[i - 1].height + 10);
 }
 
-void spawn_asteroids(x11_t xorg, obj **asteroids)
+void spawn_asteroids(global_t g, obj **asteroids)
 {
     obj *asteroid = malloc(sizeof(obj));
 
@@ -42,7 +42,7 @@ void spawn_asteroids(x11_t xorg, obj **asteroids)
     *asteroids = asteroid;
 }
 
-char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, x11_t xorg, double dt) 
+char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, global_t g, double dt) 
 {
     if (!*asteroids) 
         return 0;
@@ -55,7 +55,7 @@ char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, x11_t
         else if (asteroid->entity.pos.y > VH || shot_collision(shots, asteroid->entity.pos))
         {
             if (asteroid->entity.pos.y < VH) 
-                sound_play(xorg.sounds, SOUND_BREAK);
+                sound_play(g.sounds, SOUND_BREAK);
             
             if (*asteroids == asteroid) 
             {
@@ -87,6 +87,6 @@ void render_asteroids(obj *asteroids, v_window_t window)
                      asteroid->entity.skin,
                      asteroid->entity.pos.x - asteroid->entity.x_offset,
                      asteroid->entity.pos.y - asteroid->entity.y_offset);
-        /** render_rectangle(xorg.window.buffer, asteroid->entity.pos, 0x0000ff00); */
+        /** render_rectangle(g.window.buffer, asteroid->entity.pos, 0x0000ff00); */
     }
 }
