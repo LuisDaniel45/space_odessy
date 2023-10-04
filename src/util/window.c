@@ -69,7 +69,7 @@ window_t window_init(xcb_connection_t *c, xcb_screen_t *s, int w, int h, char *t
     return window;
 }
 
-xcb_rectangle_t translate_rect_pos(v_window_t window, xcb_rectangle_t rect)
+xcb_rectangle_t translate_rect_pos(v_window_t window, rectangle_t rect)
 {
     return (xcb_rectangle_t) { 
         .x = translate_x(window, rect.x),
@@ -193,13 +193,13 @@ v_window_t virtual_window_init(HDC hdc, int w, int h)
 }
 
 
-RECT translate_rect_pos(v_window_t window, RECT rect)
+RECT translate_rect_pos(v_window_t window, rectangle_t rect)
 {
     return (RECT) { 
-            .left = translate_x(window, rect.left),
-            .top = translate_y(window, rect.top),
-            .right = translate_x(window, rect.right),
-            .bottom = translate_y(window, rect.bottom)
+            .left = translate_x(window, rect.x),
+            .top = translate_y(window, rect.y),
+            .right = translate_x(window, (rect.width + rect.x)),
+            .bottom = translate_y(window, (rect.height + rect.y))
     };
 }
 

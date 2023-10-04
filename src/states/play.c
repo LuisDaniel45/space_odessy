@@ -6,10 +6,10 @@
 #define GRAVITY 50 
 
 typedef struct {
-    xcb_gcontext_t gc;
     entity_t player;
     obj *asteroids;
     obj *shots;
+    color_t shots_color;
 } self_t;
 
 #define PLAYER_ACCELERATE  1
@@ -26,8 +26,7 @@ void play_state_load(global_t g)
     state_machine[cur_state].self = malloc(sizeof(self_t)); 
     self_t *self = state_machine[cur_state].self;
 
-    self->gc = xcb_generate_id(g.connection);
-    xcb_create_gc(g.connection, self->gc, g.window.id, 0, NULL);
+    self->shots_color = create_color(0x00ff0000, &g);
 
     skins[0] = slice_texture(g.textures, 0, 0, 50, 50, 0); 
     skins[1] = slice_texture(g.textures, 50, 0, 50, 50, 0);
@@ -98,7 +97,7 @@ void play_state_update(global_t g, double dt, char KeyDown[], int keypress)
         sound_play(g.sounds, SOUND_GAME_OVER); 
         free_obj(self->shots);
         unload_asteroids(self->asteroids);
-        xcb_free_gc(g.connection, self->gc);
+        color_free(self->shots_color, g.connection);
         return change_state(g, STATE_GAME_OVER);
     }
         
@@ -123,10 +122,10 @@ void play_state_render(global_t g)
                   self->player.pos.x - self->player.x_offset,
                   self->player.pos.y - self->player.y_offset);
     render_asteroids(self->asteroids, g.v_window);
-    render_shots(self->shots, g, self->gc);
+    render_shots(self->shots, g, self->shots_color);
 }
 
-char collision(xcb_rectangle_t a, xcb_rectangle_t b) 
+char collision(rectangle_t a, rectangle_t b) 
 {
     return (b.x < a.x + a.width &&
             b.x + b.width > a.x) && 

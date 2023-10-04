@@ -42,7 +42,7 @@ void spawn_asteroids(global_t g, obj **asteroids)
     *asteroids = asteroid;
 }
 
-char update_asteroids(obj **asteroids, obj *shots, xcb_rectangle_t player, global_t g, double dt) 
+char update_asteroids(obj **asteroids, obj *shots, rectangle_t player, global_t g, double dt) 
 {
     if (!*asteroids) 
         return 0;

@@ -13,21 +13,40 @@
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
-#include <xcb/xcb_image.h>
+#else /* end of linux */
+
+#include <windows.h> 
+#include <wingdi.h>
+#endif /* end of WIN32 */
+
+
+#ifdef linux
+
+typedef xcb_gcontext_t color_t;
+typedef xcb_rectangle_t rectangle_t;
+#else /* end of linux */ 
+
+typedef HBRUSH color_t;
+typedef struct {
+    int x;
+    int y;
+    int width;
+    int height;
+} rectangle_t;
+#endif /* end of WIN32 */
 
 #include "util/window.h"
 #include "util/image.h"
 #include "util/sound.h"
 #include "util/font.h"
 
-
+#ifdef linux 
 typedef struct {
     int y;
     int cur_height;
     xcb_pixmap_t pixmap;
     image_t image;
 } background_t;
-
 
 typedef struct {
     xcb_connection_t *connection;
@@ -40,15 +59,9 @@ typedef struct {
     sounds_t sounds;
     font_t font;
 } global_t;
-#else 
 
-#include <windows.h> 
-#include <wingdi.h>
 
-#include "util/window.h"
-#include "util/image.h"
-#include "util/sound.h"
-#include "util/font.h"
+#else /* end of linux */
 
 typedef struct {
     int y;
@@ -66,5 +79,8 @@ typedef struct {
     font_t font;
 } global_t;
 
+#endif /* end of WIN32 */
 
-#endif
+void color_free(color_t color, void *arg);
+color_t create_color(int color, void *arg);
+void render_rectangle(global_t g, rectangle_t rect, color_t color);

@@ -3,7 +3,7 @@
 typedef struct {
     int x_offset;
     int y_offset;
-    xcb_rectangle_t pos;
+    rectangle_t pos;
     image_t skin;
 } entity_t;
 
@@ -16,19 +16,19 @@ typedef struct node {
 #define SHOT_SPEED 400 
 #define SHOT_COLOR 0x00ff0000
 #define MAX_SKINS 5
-void shoot(obj **, xcb_rectangle_t);
+void shoot(obj **, rectangle_t);
 void update_shots(obj**, double);
-void render_shots(obj *shots, global_t xorg, xcb_gcontext_t gc);
-char shot_collision(obj*, xcb_rectangle_t );
+void render_shots(obj *shots, global_t g, color_t color);
+char shot_collision(obj*, rectangle_t );
 
 // asteroids mechanics 
 #define ASTEROIDS_SPEED 300 
 void load_asteroids(global_t);
 void spawn_asteroids(global_t xorg, obj **asteroids);
-char update_asteroids(obj **, obj *, xcb_rectangle_t, global_t, double);
+char update_asteroids(obj **, obj *, rectangle_t, global_t, double);
 void render_asteroids(obj *asteroids, v_window_t window);
 void unload_asteroids(obj *asteroids);
 
-char collision(xcb_rectangle_t a, xcb_rectangle_t b);
+char collision(rectangle_t a, rectangle_t b);
 void free_obj(obj *objects);
 

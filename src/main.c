@@ -1,7 +1,9 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 #include "global.h"
 #include "states/states.h"
@@ -269,3 +271,26 @@ void render_end(global_t xorg)
         )
     );
 }
+
+void color_free(color_t color, void *arg)
+{
+    xcb_free_gc((xcb_connection_t*)arg, color);
+    return;
+}
+
+color_t create_color(int color, void *arg)
+{
+    global_t g = *(global_t*)arg;
+    color_t out = xcb_generate_id(g.connection);
+    xcb_create_gc(g.connection, out, 
+                  g.window.id, XCB_GC_FOREGROUND, 
+                  (int[]) {color});
+    return out;
+}
+
+void render_rectangle(global_t g, rectangle_t rect, color_t color)
+{
+    xcb_rectangle_t scale_pos = translate_rect_pos(g.v_window, rect);
+    xcb_poly_fill_rectangle(g.connection, g.v_window.pix, color, 1, &scale_pos);
+}
+

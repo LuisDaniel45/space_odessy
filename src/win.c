@@ -1,6 +1,7 @@
 #include <stdio.h>
 #undef linux
 #define _WIN32_LEAN_AND_MEAN
+
 #include "global.h"
 
 #define SECONDS 1000
@@ -53,6 +54,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         DispatchMessage(&msg);
 
         // update 
+        g.bg.y = (g.bg.y + (int)(BG_SPEED * dt)) % g.bg.cur_height;
         counter++;
     }
 
@@ -145,7 +147,32 @@ void render_end(v_window_t window, HDC hdc, int w)
 
 void render_begin(v_window_t window, background_t bg)
 {
+    int h = window.h;
+    if (bg.y < window.h)
+    {
+        h = bg.y;
+        BitBlt(window.hdc, 0, bg.y,
+               window.w, window.h - bg.y,
+               bg.hdc, 0, 0, SRCCOPY);
+    }
+
     BitBlt(window.hdc, 0, 0, 
-           window.w, window.h, 
-           bg.hdc, 0, 0, SRCCOPY);
+           window.w, h,
+           bg.hdc, 0, bg.cur_height - bg.y, SRCCOPY);
+}
+
+void color_free(color_t color, void *arg)
+{
+    DeleteObject(color);
+}
+
+color_t create_color(int color, void *arg)
+{
+    return CreateSolidBrush(color);
+}
+
+void render_rectangle(global_t g, rectangle_t rect, color_t color)
+{
+    RECT rectangle = translate_rect_pos(g.v_window, rect);
+    FillRect(g.v_window.hdc, &rectangle, color);
 }
