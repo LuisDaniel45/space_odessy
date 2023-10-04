@@ -7,32 +7,64 @@
 #define VW 300 
 #define VH 600
 
+
+
+
 #ifdef linux 
 
 #include <sys/types.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
+#include <xcb/xcb_image.h>
 #else /* end of linux */
 
 #include <windows.h> 
 #include <wingdi.h>
 #endif /* end of WIN32 */
 
+#define key_pressed(keyboard, keycode) keyboard[keycode] |= 1 << 31
+#define key_release(keyboard, keycode) keyboard[keycode] = (keyboard[keycode] << 1) >> 1
+#define is_key_down(table, key)  ((*table[key]) >> 31)
+enum keys_t {
+    KEY_unmap,
+    KEY_q,
+    KEY_h,
+    KEY_j,
+    KEY_k,
+    KEY_l,
+    KEY_space,
+    KEY_enter,
+    KEY_r,
+    KEY_MAX
+};
 
-#ifdef linux
+#ifdef linux 
+static int keys_table[] = {
+    0,
+    XK_q,
+    XK_h,
+    XK_j,
+    XK_k,
+    XK_l,
+    XK_space,
+    XK_Return,
+    XK_r
+};
+#endif
 
-typedef xcb_gcontext_t color_t;
-typedef xcb_rectangle_t rectangle_t;
-#else /* end of linux */ 
 
-typedef HBRUSH color_t;
 typedef struct {
     int x;
     int y;
     int width;
     int height;
 } rectangle_t;
+
+#ifdef linux
+typedef xcb_gcontext_t color_t;
+#else /* end of linux */ 
+typedef HBRUSH color_t;
 #endif /* end of WIN32 */
 
 #include "util/window.h"

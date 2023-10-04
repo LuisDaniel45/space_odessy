@@ -45,22 +45,22 @@ void play_state_load(global_t g)
     self->asteroids = NULL;
 }
 
-void play_state_update(global_t g, double dt, char KeyDown[], int keypress)
+void play_state_update(global_t g, double dt, int *KeyDown[], int keypress)
 {
     char flags = 0;
     self_t *self = state_machine[cur_state].self;
     double dx = 0, dy = 0;
-    if (KeyDown[XK_j]) 
+    if (is_key_down(KeyDown, KEY_j))
         dy = PLAYER_SPEED * dt;
-    else if (KeyDown[XK_k]) {
+    else if (is_key_down(KeyDown, KEY_k)) {
         dy = -PLAYER_SPEED * dt;
         flags |= PLAYER_ACCELERATE;
     }
-    if (KeyDown[XK_l]) {
+    if (is_key_down(KeyDown, KEY_l)) {
         dx = PLAYER_SPEED * dt;
         flags |= PLAYER_TURN_RIGHT;
     }
-    else if (KeyDown[XK_h]) {
+    else if (is_key_down(KeyDown, KEY_h)) {
         dx = -PLAYER_SPEED * dt;
         flags |= PLAYER_TURN_LEFT;
     }
@@ -79,7 +79,7 @@ void play_state_update(global_t g, double dt, char KeyDown[], int keypress)
             dy += GRAVITY * dt;
             break;
 
-        case XK_space:
+        case KEY_space:
             shoot(&self->shots, self->player.pos);
             sound_play(g.sounds, SOUND_SHOOT);
             break;

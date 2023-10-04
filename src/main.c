@@ -18,7 +18,7 @@ background_t background_init(global_t xorg);
 void resize_bg(global_t xorg, background_t *bg, int width, int height);
 void bg_free(xcb_connection_t *c, background_t bg);
 
-int *map_keyboard(global_t xorg, char KeyDown[]);
+int *map_keyboard(global_t xorg, int *KeyDown[]);
 void render_begin(global_t xorg);
 void render_end(global_t xorg);
 
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 {
     global_t xorg = global_init();
 
-    char KeyDown[255];
+    int *KeyDown[KEY_MAX];
     int *keyboard = map_keyboard(xorg, KeyDown);
 
     state_machine[cur_state].load(xorg);
@@ -91,19 +91,17 @@ int main(int argc, char *argv[])
 
                 case XCB_KEY_PRESS: {
                     xcb_key_press_event_t *keycode = event;
-                    keypress = keyboard[keycode->detail];
-                    if (keypress == XK_q) 
-                        goto exit;
-                    
-                    KeyDown[keypress % 255] = 1;
+                    keypress = (short) keyboard[keycode->detail];
+                    if (keypress == KEY_q) 
+                        goto exit; 
+                    key_pressed(keyboard, keycode->detail);
                     break;
 
                 }
 
                 case XCB_KEY_RELEASE: {
                     xcb_key_press_event_t *keycode = event;
-                    int value = keyboard[keycode->detail];
-                    KeyDown[value % 255] = 0;
+                    key_release(keyboard, keycode->detail);
                     break;
                 }
             }
@@ -115,6 +113,7 @@ int main(int argc, char *argv[])
     }
 
 exit:
+    printf("exit succesfully\n");
     free_global(xorg);
     free(keyboard);
     return 0;
@@ -156,7 +155,7 @@ global_t global_init()
     return xorg;
 }
 
-int *map_keyboard(global_t xorg, char KeyDown[])
+int *map_keyboard(global_t xorg, int *KeyDown[])
 {
     xcb_get_keyboard_mapping_reply_t* keyboard_mapping = 
         xcb_get_keyboard_mapping_reply(xorg.connection,
@@ -169,8 +168,17 @@ int *map_keyboard(global_t xorg, char KeyDown[])
                                                                              
     int *keyboard = malloc(sizeof(int) * xorg.setup->max_keycode);
     for (int i = xorg.setup->min_keycode; i < xorg.setup->max_keycode; i++) {
-        keyboard[i] = keysyms[0 + (i - xorg.setup->min_keycode) * keyboard_mapping->keysyms_per_keycode];
-        KeyDown[keyboard[i] % 255] = 0;
+        int keysym = keysyms[0 + (i - xorg.setup->min_keycode) * keyboard_mapping->keysyms_per_keycode];
+        keyboard[i] = 0;
+        for (int j = 0; j < KEY_MAX; j++) {
+            if (keysym == keys_table[j]) {
+                keyboard[i] = j;
+                KeyDown[j] = &keyboard[i];
+                break;
+            }
+        }
+        /** keyboard[i] = keysyms[0 + (i - xorg.setup->min_keycode) * keyboard_mapping->keysyms_per_keycode]; */
+        /** KeyDown[keyboard[i] % 255] = 0; */
     }
 
     free(keyboard_mapping);

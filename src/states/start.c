@@ -5,9 +5,9 @@ void start_state_load(global_t g)
     state_machine[cur_state].self = NULL;
 }
 
-void start_state_update(global_t g, double dt, char KeyDown[], int keypress)
+void start_state_update(global_t g, double dt, int *KeyDown[], int keypress)
 {
-    if (keypress == XK_Return)
+    if (keypress == KEY_enter)
     {
         sound_play(g.sounds, SOUND_SELECT);
         return change_state(g, STATE_PLAY);
