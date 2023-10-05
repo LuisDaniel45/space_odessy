@@ -7,9 +7,6 @@
 #define VW 300 
 #define VH 600
 
-
-
-
 #ifdef linux 
 
 #include <sys/types.h>
@@ -40,6 +37,7 @@ enum keys_t {
 };
 
 #ifdef linux 
+
 static int keys_table[] = {
     0,
     XK_q,
@@ -51,7 +49,20 @@ static int keys_table[] = {
     XK_Return,
     XK_r
 };
-#endif
+#else /* end of linux */
+
+static int keys_table[] = {
+    0,
+    'Q',
+    'H',
+    'J',
+    'K',
+    'L',
+    VK_SPACE,
+    VK_RETURN,
+    'R'
+};
+#endif /* end of WIN32 */
 
 
 typedef struct {

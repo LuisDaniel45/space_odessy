@@ -1,5 +1,6 @@
 #include "../global.h"
 
+#undef linux
 #ifdef linux
 
 #include <xcb/shm.h>
@@ -41,8 +42,8 @@ window_t window_init(xcb_connection_t *c, xcb_screen_t *s, int w, int h, char *t
     // set window config
     int mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     int values[] = {0x00010114, XCB_EVENT_MASK_KEY_RELEASE | 
-        XCB_EVENT_MASK_KEY_PRESS   | 
-            XCB_EVENT_MASK_EXPOSURE    };
+                                XCB_EVENT_MASK_KEY_PRESS   | 
+                                XCB_EVENT_MASK_EXPOSURE    };
 
     // create window 
     xcb_create_window(c, s->root_depth, window.id, s->root,                
@@ -122,6 +123,7 @@ void free_v_window(v_window_t v_window, xcb_connection_t *con)
 
 void window_free(window_t window)
 {
+    DeleteObject(window.class.hbrBackground);
     UnregisterClassA(window.class.lpszClassName, window.class.hInstance);
 }
 
@@ -136,7 +138,8 @@ window_t window_init(void (*proc), HINSTANCE hinst, char*title, int w, int h)
         .title = title
     };
 
-    window.class.hbrBackground = (HBRUSH) COLOR_WINDOW;
+    HBRUSH bg_color = CreateSolidBrush(0x00010114);
+    window.class.hbrBackground = bg_color; 
     window.class.hCursor       = LoadCursor(NULL, IDC_ARROW);
     window.class.hInstance     = hinst;
     window.class.lpszClassName = L"window_class";

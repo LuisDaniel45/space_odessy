@@ -97,7 +97,7 @@ void play_state_update(global_t g, double dt, int *KeyDown[], int keypress)
         sound_play(g.sounds, SOUND_GAME_OVER); 
         free_obj(self->shots);
         unload_asteroids(self->asteroids);
-        color_free(self->shots_color, g.connection);
+        color_free(self->shots_color, &g);
         return change_state(g, STATE_GAME_OVER);
     }
         

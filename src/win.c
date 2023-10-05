@@ -3,6 +3,7 @@
 #define _WIN32_LEAN_AND_MEAN
 
 #include "global.h"
+#include "states/states.h"
 
 #define SECONDS 1000
 #define BG_SPEED 100
@@ -16,10 +17,20 @@ void render_end(v_window_t window, HDC hdc, int w);
 void render_begin(v_window_t window, background_t bg);
 
 global_t g;
+int keyboard[255];
+int keypress;
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 {
+    int *key_down[KEY_MAX];
+    for (int i = 0; i < KEY_MAX; i++)
+    {
+        key_down[i] = &keyboard[keys_table[i]];
+        keyboard[keys_table[i]] = i;
+    }
+
     g.window = window_init(WindowProcedure, hInst, L"Space Odessy", VW, VH);
+    state_machine[cur_state].load(g);
 
     int counter = 0;
     long time = 0;
@@ -40,6 +51,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
                 Sleep(time_per_frame - time);
 
             render_begin(g.v_window, g.bg);
+            state_machine[cur_state].render(g);
             render_end(g.v_window, g.window.hdc, g.window.width);
 
             counter = 0;
@@ -50,10 +62,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         time += end - start; 
         start = end;
 
+        keypress = 0;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
-        // update 
+
+        state_machine[cur_state].update(g, dt, key_down, keypress);
         g.bg.y = (g.bg.y + (int)(BG_SPEED * dt)) % g.bg.cur_height;
         counter++;
     }
@@ -67,13 +81,18 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
 
     switch (msg) {
-        case WM_CHAR:
-            if (wp == 'q')
+        case WM_KEYDOWN:
+            if (wp == 'Q')
             {
                 PostQuitMessage(0);
             }
+            key_pressed(keyboard, wp);
+            keypress = (short) (keyboard[wp]); 
             break;
 
+        case WM_KEYUP:
+            key_release(keyboard, wp);
+            break;
 
         case WM_DESTROY:
             PostQuitMessage(0);
@@ -100,8 +119,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                         .top = 0,
                         .left = 0,
                         .right = g.window.width,
-                        .bottom = g.window.height 
-                    }}, (HBRUSH)COLOR_WINDOW);
+                        .bottom = g.window.height
+                    }}, g.window.class.hbrBackground);
             break;
 
         default:
@@ -168,6 +187,10 @@ void color_free(color_t color, void *arg)
 
 color_t create_color(int color, void *arg)
 {
+    char *ptr = &color;
+    char tmp = *ptr;
+    *ptr = ptr[2];
+    ptr[2] = tmp; 
     return CreateSolidBrush(color);
 }
 
@@ -176,3 +199,18 @@ void render_rectangle(global_t g, rectangle_t rect, color_t color)
     RECT rectangle = translate_rect_pos(g.v_window, rect);
     FillRect(g.v_window.hdc, &rectangle, color);
 }
+
+void change_state(global_t g, int state)
+{
+    if (state_machine[cur_state].self) 
+        free(state_machine[cur_state].self);
+    
+    cur_state = state;
+    if (cur_state >= number_of_states) 
+    {
+        perror("Error: State doesn't exist");
+        exit(1);
+    }
+
+    state_machine[cur_state].load(g);
+} 

@@ -169,16 +169,13 @@ int *map_keyboard(global_t xorg, int *KeyDown[])
     int *keyboard = malloc(sizeof(int) * xorg.setup->max_keycode);
     for (int i = xorg.setup->min_keycode; i < xorg.setup->max_keycode; i++) {
         int keysym = keysyms[0 + (i - xorg.setup->min_keycode) * keyboard_mapping->keysyms_per_keycode];
-        keyboard[i] = 0;
-        for (int j = 0; j < KEY_MAX; j++) {
+        keyboard[i] = KEY_unmap;
+        for (int j = 0; j < KEY_MAX; j++) 
             if (keysym == keys_table[j]) {
                 keyboard[i] = j;
                 KeyDown[j] = &keyboard[i];
                 break;
             }
-        }
-        /** keyboard[i] = keysyms[0 + (i - xorg.setup->min_keycode) * keyboard_mapping->keysyms_per_keycode]; */
-        /** KeyDown[keyboard[i] % 255] = 0; */
     }
 
     free(keyboard_mapping);
@@ -282,7 +279,8 @@ void render_end(global_t xorg)
 
 void color_free(color_t color, void *arg)
 {
-    xcb_free_gc((xcb_connection_t*)arg, color);
+
+    xcb_free_gc(((global_t*)arg)->connection, color);
     return;
 }
 
