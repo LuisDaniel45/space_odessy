@@ -1,6 +1,5 @@
 #include "../global.h"
 
-#undef linux
 #ifdef linux
 
 #include <xcb/shm.h>

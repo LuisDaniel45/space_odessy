@@ -279,7 +279,6 @@ void render_end(global_t xorg)
 
 void color_free(color_t color, void *arg)
 {
-
     xcb_free_gc(((global_t*)arg)->connection, color);
     return;
 }
