@@ -52,7 +52,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
                 Sleep(time_per_frame - time);
 
             render_begin(g.v_window, g.bg);
-            state_machine[cur_state].render(g);
+            /** state_machine[cur_state].render(g); */
             render_end(g.v_window, g.window.hdc, g.window.width);
 
             counter = 0;

@@ -176,21 +176,21 @@ v_window_t virtual_window_init(HDC hdc, int w, int h)
     window.hdc = CreateCompatibleDC(hdc);
 
     BITMAPINFO bm = {0};
-    bm.bmiHeader.biSize = w*h*4;
+    bm.bmiHeader.biSize = sizeof(bm.bmiHeader); 
     bm.bmiHeader.biWidth = w;
     bm.bmiHeader.biHeight = -h;
     bm.bmiHeader.biPlanes = 1;
     bm.bmiHeader.biBitCount = 32;
     bm.bmiHeader.biCompression = BI_RGB;
 
-    void *data = NULL;
-    HBITMAP bitmap = CreateDIBSection(hdc, &bm, DIB_RGB_COLORS, &data, NULL, 0);
+    HBITMAP bitmap = CreateDIBSection(hdc, &bm, DIB_RGB_COLORS, &window.buffer, NULL, 0);
+    if (!bitmap)
+    {
+        printf("Error: creating dib section in v_window");
+        exit(1);
+    }
+
     SelectObject(window.hdc, bitmap);
-
-    BITMAP test;
-    GetObject(bitmap, sizeof(test), &test);
-    window.buffer = test.bmBits;
-
     DeleteObject(bitmap);
     return window;
 }
