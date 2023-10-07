@@ -30,10 +30,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
     }
 
     g.window = window_init(WindowProcedure, hInst, L"Space Odessy", VW * 1.6, VH * 1.6);
-    g.textures = load_image("resources/textures.png", 0, 0);
-    g.sounds = sound_init();
-    font_init("resources/font.ttf", &g.font);
-    g.bg.cur_height += 10;
 
     state_machine[cur_state].load(g);
 
@@ -71,7 +67,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
-
         state_machine[cur_state].update(g, dt, key_down, keypress);
         g.bg.y = (g.bg.y + (int)(BG_SPEED * dt)) % g.bg.cur_height;
         counter++;
@@ -98,15 +93,18 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             key_release(keyboard, wp);
             break;
 
-        case WM_CREATE:
-            g.v_window = virtual_window_init(g.window.hdc, VW, VH);
-            g.bg = background_init(g.v_window.hdc);
-            resize_bg(&g.bg, VW * 1.6, VH * 1.6, g.v_window.hdc);
-            break;
-
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
+
+        case WM_CREATE: {
+            g.window.hdc = GetDC(hwnd);
+            g.bg = background_init(g.window.hdc);
+            g.textures = load_image("resources/textures.png", 0, 0);
+            g.sounds = sound_init();
+            font_init("resources/font.ttf", &g.font);
+            break;
+        }
 
         case WM_SIZE:
             g.window.width = LOWORD(lp); 
@@ -127,6 +125,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
         default:
             return DefWindowProcW(hwnd, msg, wp, lp);
+            break;
     }
 }
 

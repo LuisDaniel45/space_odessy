@@ -142,7 +142,7 @@ window_t window_init(void (*proc), HINSTANCE hinst, char*title, int w, int h)
     window.class.hCursor       = LoadCursor(NULL, IDC_ARROW);
     window.class.hInstance     = hinst;
     window.class.lpszClassName = L"window_class";
-    window.class.lpfnWndProc   = proc;
+    window.class.lpfnWndProc   = proc; 
     if (!RegisterClassW(&window.class))
     {
         perror("Erorr: Registering class\n");
@@ -157,7 +157,6 @@ window_t window_init(void (*proc), HINSTANCE hinst, char*title, int w, int h)
                               window.width, window.height, 
                               NULL, NULL, NULL, NULL);
 
-    window.hdc = GetDC(window.id);
     return window;
 }
 
