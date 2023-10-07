@@ -73,9 +73,9 @@ xcb_rectangle_t translate_rect_pos(v_window_t window, rectangle_t rect)
 {
     return (xcb_rectangle_t) { 
         .x = translate_x(window, rect.x),
-            .y = translate_y(window, rect.y),
-            .width = translate_x(window, rect.width),
-            .height = translate_y(window, rect.height)
+        .y = translate_y(window, rect.y),
+        .width = translate_x(window, rect.width),
+        .height = translate_y(window, rect.height)
     };
 }
 
@@ -148,6 +148,7 @@ window_t window_init(void (*proc), HINSTANCE hinst, char*title, int w, int h)
         perror("Erorr: Registering class\n");
         exit(1);
     }
+
 
     window.id = CreateWindowW(window.class.lpszClassName,
                               window.title, 

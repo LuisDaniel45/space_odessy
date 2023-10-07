@@ -29,21 +29,26 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         keyboard[keys_table[i]] = i;
     }
 
-    g.window = window_init(WindowProcedure, hInst, L"Space Odessy", VW, VH);
+    g.window = window_init(WindowProcedure, hInst, L"Space Odessy", VW * 1.6, VH * 1.6);
+    g.textures = load_image("resources/textures.png", 0, 0);
+    g.sounds = sound_init();
+    font_init("resources/font.ttf", &g.font);
+    g.bg.cur_height += 10;
+
     state_machine[cur_state].load(g);
 
     int counter = 0;
     long time = 0;
     double dt = 100.0 / SECONDS;
-    const int max_updates = 1; 
+    const int max_updates = 1;
     const long time_per_frame = SECONDS / 60;
     long start = 0, end = 0;
     SetTimer(g.window.id, 1, 0, NULL);
 
     MSG msg = {0};
-    while (GetMessage(&msg, NULL, 0, 0)) 
+    while (GetMessage(&msg, NULL, 0, 0))
     {
-        if (counter > max_updates) 
+        if (counter > max_updates)
         {
             dt = (double)time / SECONDS;
 
@@ -59,7 +64,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         }
 
         end = msg.time;
-        time += end - start; 
+        time += end - start;
         start = end;
 
         keypress = 0;
@@ -79,7 +84,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
-
     switch (msg) {
         case WM_KEYDOWN:
             if (wp == 'Q')
@@ -94,18 +98,16 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             key_release(keyboard, wp);
             break;
 
+        case WM_CREATE:
+            g.v_window = virtual_window_init(g.window.hdc, VW, VH);
+            g.bg = background_init(g.v_window.hdc);
+            resize_bg(&g.bg, VW * 1.6, VH * 1.6, g.v_window.hdc);
+            break;
+
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
 
-        case WM_CREATE:
-            g.textures = load_image("resources/textures.png", 0, 0);
-            g.v_window = virtual_window_init(g.window.hdc, VW, VH);
-            g.bg = background_init(g.window.hdc);
-            g.sounds = sound_init();
-            font_init("resources/font.ttf", &g.font);
-            break;
-            
         case WM_SIZE:
             g.window.width = LOWORD(lp); 
             g.window.height = HIWORD(lp); 
@@ -125,8 +127,6 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
         default:
             return DefWindowProcW(hwnd, msg, wp, lp);
-
-    
     }
 }
 
@@ -139,28 +139,24 @@ void resize_bg(background_t *bg, int w, int h, HDC hdc)
     SetBitmapBits(bitmap, w*rh*4, image.data);
     SelectObject(bg->hdc, bitmap);
     DeleteObject(bitmap);
+    free(image.data);
 }
 
 background_t background_init(HDC hdc)
 {
     background_t bg = {
         .y = 0,
-        .cur_height = VH,
         .image = load_image("resources/bg.png", 0, 0),
         .hdc = CreateCompatibleDC(hdc)
     };
-
-    HBITMAP bitmap = CreateCompatibleBitmap(hdc, bg.image.width, bg.image.height); 
-    SetBitmapBits(bitmap, VW*VH* 4, bg.image.data);
-    SelectObject(bg.hdc, bitmap);
-    DeleteObject(bitmap);
+    bg.cur_height = bg.image.height;
     return bg;
 }
 
 void render_end(v_window_t window, HDC hdc, int w) 
 {
-    BitBlt(hdc, (w/2) - (window.w/2), 0, 
-           window.w, window.h, 
+    BitBlt(hdc, (w/2) - (window.w/2), 0,
+           window.w, window.h,
            window.hdc, 0, 0, SRCCOPY);
 }
 
@@ -175,7 +171,7 @@ void render_begin(v_window_t window, background_t bg)
                bg.hdc, 0, 0, SRCCOPY);
     }
 
-    BitBlt(window.hdc, 0, 0, 
+    BitBlt(window.hdc, 0, 0,
            window.w, h,
            bg.hdc, 0, bg.cur_height - bg.y, SRCCOPY);
 }

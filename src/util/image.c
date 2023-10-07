@@ -1,6 +1,7 @@
 #include "../global.h" 
 
 #include "image.h"
+#include <stdio.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
