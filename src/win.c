@@ -100,9 +100,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         case WM_CREATE: {
             g.window.hdc = GetDC(hwnd);
             g.bg = background_init(g.window.hdc);
-            g.textures = load_image("resources/textures.png", 0, 0);
+            g.textures = load_image("resources\\textures.png", 0, 0);
             g.sounds = sound_init();
-            font_init("resources/font.ttf", &g.font);
+            font_init("resources\\font.ttf", &g.font);
             break;
         }
 
@@ -145,7 +145,7 @@ background_t background_init(HDC hdc)
 {
     background_t bg = {
         .y = 0,
-        .image = load_image("resources/bg.png", 0, 0),
+        .image = load_image("resources\\bg.png", 0, 0),
         .hdc = CreateCompatibleDC(hdc)
     };
     bg.cur_height = bg.image.height;
