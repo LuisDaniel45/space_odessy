@@ -9,6 +9,7 @@
 #define BG_SPEED 100
 
 LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
+void global_init(HINSTANCE hInst);
 
 background_t background_init(HDC hdc);
 void resize_bg(background_t *bg, int w, int h, HDC hdc);
@@ -29,8 +30,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         keyboard[keys_table[i]] = i;
     }
 
-    g.window = window_init(WindowProcedure, hInst, L"Space Odessy", VW * 1.6, VH * 1.6);
-
+    global_init(hInst);
     state_machine[cur_state].load(g);
 
     int counter = 0;
@@ -76,6 +76,23 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
     return 0;
 }
 
+void global_init(HINSTANCE hInst)
+{
+    g.window   = window_init(WindowProcedure, hInst, L"Space Odessy", VW * 1.6, VH * 1.6);
+    g.bg       = background_init(g.window.hdc);
+    g.textures = load_image("resources\\textures.png", 0, 0);
+    g.sounds   = sound_init();
+    g.v_window = virtual_window_init(g.window.hdc, g.window.width, g.window.height);
+    resize_bg(&g.bg, g.window.width, g.window.height, g.window.hdc);
+    font_init("resources\\font.ttf", &g.font);
+    FillRect(g.window.hdc, (RECT[]) {{
+            .top = 0,
+            .left = 0,
+            .right = g.window.width,
+            .bottom = g.window.height
+            }}, g.window.class.hbrBackground);
+
+}
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -97,16 +114,11 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             PostQuitMessage(0);
             break;
 
-        case WM_CREATE: {
-            g.window.hdc = GetDC(hwnd);
-            g.bg = background_init(g.window.hdc);
-            g.textures = load_image("resources\\textures.png", 0, 0);
-            g.sounds = sound_init();
-            font_init("resources\\font.ttf", &g.font);
-            break;
-        }
-
         case WM_SIZE:
+            if (!g.window.id)
+                break;
+
+            printf("resized\n");
             g.window.width = LOWORD(lp); 
             g.window.height = HIWORD(lp); 
 

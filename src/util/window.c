@@ -157,6 +157,7 @@ window_t window_init(void (*proc), HINSTANCE hinst, char*title, int w, int h)
                               window.width, window.height, 
                               NULL, NULL, NULL, NULL);
 
+    window.hdc = GetDC(window.id);
     return window;
 }
 
