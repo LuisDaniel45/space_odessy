@@ -183,10 +183,12 @@ v_window_t virtual_window_init(HDC hdc, int w, int h)
     bm.bmiHeader.biBitCount = 32;
     bm.bmiHeader.biCompression = BI_RGB;
 
+    // for some reason wine doesen't give the bit of the bitmap to the pointer 
+    // but it should work on a windows pc 
     HBITMAP bitmap = CreateDIBSection(hdc, &bm, DIB_RGB_COLORS, &window.buffer, NULL, 0);
     if (!bitmap)
     {
-        printf("Error: creating dib section in v_window");
+        printf("Error: creating dib section in v_window\n");
         exit(1);
     }
 

@@ -52,7 +52,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
                 Sleep(time_per_frame - time);
 
             render_begin(g.v_window, g.bg);
-            /** state_machine[cur_state].render(g); */
+            state_machine[cur_state].render(g);
             render_end(g.v_window, g.window.hdc, g.window.width);
 
             counter = 0;
@@ -82,6 +82,13 @@ void global_init(HINSTANCE hInst)
     g.bg       = background_init(g.window.hdc);
     g.textures = load_image("resources\\textures.png", 0, 0);
     g.sounds   = sound_init();
+
+    // for some reason width and height get changed to what it is set
+    RECT rect;
+    GetClientRect(g.window.id, &rect);
+    g.window.width = rect.right;
+    g.window.height = rect.bottom;
+
     g.v_window = virtual_window_init(g.window.hdc, g.window.width, g.window.height);
     resize_bg(&g.bg, g.window.width, g.window.height, g.window.hdc);
     font_init("resources\\font.ttf", &g.font);
@@ -115,6 +122,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_SIZE:
+            g.window.height = HIWORD(lp); 
             if (!g.window.id)
                 break;
 
