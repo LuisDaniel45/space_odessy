@@ -47,12 +47,12 @@ static int keys_table[] = {
     XK_l,
     XK_space,
     XK_Return,
-    XK_r
+    XK_r,
 };
 #else /* end of linux */
 
 static int keys_table[] = {
-    0,
+     0,
     'Q',
     'H',
     'J',
@@ -60,7 +60,7 @@ static int keys_table[] = {
     'L',
     VK_SPACE,
     VK_RETURN,
-    'R'
+    'R',
 };
 #endif /* end of WIN32 */
 
@@ -118,7 +118,7 @@ typedef struct {
     v_window_t v_window;
     background_t bg;
     image_t textures;
-    sounds_t sounds;
+    sound_t sounds[SOUND_MAX];
     font_t font;
 } global_t;
 

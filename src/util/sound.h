@@ -21,10 +21,20 @@ typedef struct {
     int num_samples;
 } wav_file_info_t;
 
+#ifdef linux 
+
 typedef struct {
     int pid;
     wav_file_info_t info;
 } sound_t;
+#else
+
+typedef struct {
+    WAVEHDR header;
+    HWAVEOUT dev;
+    wav_file_info_t info;
+} sound_t;
+#endif
 
 int sound_free(sound_t sound[]);
 int sound_play(sound_t *sound);

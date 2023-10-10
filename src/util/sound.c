@@ -2,10 +2,16 @@
 #include <stdlib.h>
 
 #ifdef linux
+
 #include <signal.h>
 #include <unistd.h>
 #include <alsa/asoundlib.h>
 #include <assert.h>
+#else
+
+#include <assert.h>
+#include <windows.h>
+#include <mmsystem.h>
 #endif
 
 #include "sound.h"
@@ -22,12 +28,6 @@ int read_data_subchunk(wav_file_info_t *info);
 void sound_unload_file(sound_t sound);
 int load_wav_file(char *file, wav_file_info_t *info);
 
-#ifdef linux
-void sound_unload_file(sound_t sound)
-{
-    free(sound.info.file_data);
-}
-
 int sound_free(sound_t sound[]) 
 {
     for (int i = 0; i < SOUND_MAX; i++) 
@@ -36,6 +36,12 @@ int sound_free(sound_t sound[])
         sound_unload_file(sound[i]);
     }
     return 0;
+}
+
+#ifdef linux
+void sound_unload_file(sound_t sound)
+{
+    free(sound.info.file_data);
 }
 
 int sound_is_alive(sound_t sound) 
@@ -137,14 +143,76 @@ int sound_init(sound_t *sound)
 
 }
 #else
+int sound_is_alive(sound_t sound) 
+{
+    if (sound.header.dwFlags == WHDR_PREPARED)
+        return 0;
 
-int free_sound(sounds_t sound){} 
-int unload_sound_file(sound_element_t sound){}
-void sound_pause(sounds_t sound, enum sounds_enum i) {}
+    return !(sound.header.dwFlags & WHDR_DONE);
+}
 
-char isSoundPlaying(sounds_t sound, enum sounds_enum i) {}
-void sound_play(sounds_t sound, enum sounds_enum i) {}
-sounds_t sound_init() {}
+int sound_play(sound_t *sound)
+{
+    if (sound_is_alive(*sound)) 
+        sound_kill(*sound);
+
+    waveOutWrite(sound->dev, &sound->header, sizeof(sound->header));
+}
+
+void sound_unload_file(sound_t sound)
+{
+    free(sound.info.file_data);
+}
+
+void sound_kill(sound_t sound)
+{
+    waveOutReset(sound.dev);
+}
+
+sound_t sound_load_file(char *file)
+{
+    sound_t sound;
+    assert(load_wav_file(file, &sound.info) == 0);
+
+    WAVEFORMATEX wavFormat = {
+        .wFormatTag = WAVE_FORMAT_PCM,
+        .nChannels = sound.info.num_channels,
+        .nSamplesPerSec = sound.info.sample_rate,
+        .wBitsPerSample = sound.info.bits_per_sample,
+        .nBlockAlign = sound.info.block_align,
+        .nAvgBytesPerSec = sound.info.byte_rate,
+        .cbSize = 0
+    };
+
+    assert(waveOutOpen(&sound.dev, WAVE_MAPPER, &wavFormat, 0, 0, CALLBACK_NULL) 
+            == MMSYSERR_NOERROR );
+
+    WAVEHDR header = {
+        .lpData = sound.info.data,
+        .dwBufferLength = sound.info.data_size,
+        .dwBytesRecorded = 0,
+        .dwFlags = 0,
+        .dwLoops = 0
+    };
+
+    sound.header = header;
+    assert(waveOutPrepareHeader(sound.dev, &sound.header, sizeof(WAVEHDR)) 
+            == MMSYSERR_NOERROR);
+
+    return sound;
+}
+
+int sound_init(sound_t *sound)
+{
+    if (waveOutGetNumDevs() == 0)
+        ERR("No audio devices available\n");
+
+    sound[SOUND_LAUNCH]     = sound_load_file("resources/launch.wav");
+    sound[SOUND_SHOOT]      = sound_load_file("resources/shoot.wav");
+    sound[SOUND_BREAK]      = sound_load_file("resources/break.wav");
+    sound[SOUND_GAME_OVER]  = sound_load_file("resources/game_over.wav");
+    sound[SOUND_SELECT]     = sound_load_file("resources/select.wav");
+}
 #endif 
 
 

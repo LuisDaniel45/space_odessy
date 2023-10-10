@@ -1,6 +1,7 @@
 #include "states.h" 
 #include "../objects/objects.h"
 #include <math.h>
+#include <stdio.h>
 
 #define PLAYER_SPEED 100 
 #define GRAVITY 50 
@@ -67,7 +68,7 @@ void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
     change_skins(flags);
     if (flags &= PLAYER_ACCELERATE)
     {
-        if (!sound_is_alive(g->sounds[SOUND_LAUNCH])) 
+        if (!sound_is_alive(g->sounds[SOUND_LAUNCH]))
             sound_play(&g->sounds[SOUND_LAUNCH]);
     }
     else
@@ -94,6 +95,7 @@ void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
 
     if (update_asteroids(&self->asteroids, self->shots, self->player.pos, g, dt)) 
     {
+        sound_kill(g->sounds[SOUND_LAUNCH]);
         sound_play(&g->sounds[SOUND_GAME_OVER]); 
         free_obj(self->shots);
         unload_asteroids(self->asteroids);

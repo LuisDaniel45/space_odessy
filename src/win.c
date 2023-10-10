@@ -67,11 +67,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
-        state_machine[cur_state].update(g, dt, key_down, keypress);
+        state_machine[cur_state].update(&g, dt, key_down, keypress);
         g.bg.y = (g.bg.y + (int)(BG_SPEED * dt)) % g.bg.cur_height;
         counter++;
     }
 
+    sound_free(g.sounds);
     window_free(g.window);
     return 0;
 }
@@ -81,7 +82,7 @@ void global_init(HINSTANCE hInst)
     g.window   = window_init(WindowProcedure, hInst, L"Space Odessy", VW * 1.6, VH * 1.6);
     g.bg       = background_init(g.window.hdc);
     g.textures = load_image("resources\\textures.png", 0, 0);
-    g.sounds   = sound_init();
+    sound_init(g.sounds);
 
     // for some reason width and height get changed to what it is set
     RECT rect;

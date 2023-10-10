@@ -10,7 +10,7 @@ LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lasound
 
 WIN_SRC=src/win.c $(UTIL) $(STATES) $(OBJECTS) 
 WIN_CC=x86_64-w64-mingw32-gcc
-WIN_LIBS=-lgdi32 -lm 
+WIN_LIBS=-lgdi32 -lm -lwinmm
 
 ${PROG}: ${SRC}
 	${CC} -o $@ ${SRC} ${LIBS} 
