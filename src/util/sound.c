@@ -161,6 +161,7 @@ int sound_play(sound_t *sound)
 
 void sound_unload_file(sound_t sound)
 {
+    waveOutClose(sound.dev);
     free(sound.info.file_data);
 }
 
