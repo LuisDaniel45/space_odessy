@@ -99,7 +99,7 @@ typedef struct {
     xcb_setup_t *setup;
     background_t bg;
     image_t textures;
-    sounds_t sounds;
+    sound_t sounds[SOUND_MAX];
     font_t font;
 } global_t;
 

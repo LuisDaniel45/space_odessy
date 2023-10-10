@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        state_machine[cur_state].update(xorg, dt, KeyDown, keypress);
+        state_machine[cur_state].update(&xorg, dt, KeyDown, keypress);
         xorg.bg.y = (xorg.bg.y + (int)(BG_SPEED * dt)) % xorg.bg.cur_height;
         counter++; 
     }
@@ -122,7 +122,7 @@ exit:
 void free_global(global_t xorg)
 {
     free_font(xorg.font);
-    free_sound(xorg.sounds);
+    sound_free(xorg.sounds);
     free(xorg.textures.data);
     bg_free(xorg.connection, xorg.bg);
     free_v_window(xorg.v_window, xorg.connection);
@@ -147,8 +147,8 @@ global_t global_init()
                                           xorg.window.id, VW, VH);
     xorg.bg         = background_init(xorg);
     xorg.textures   = load_image("resources/textures.png", 0, 0);
-    xorg.sounds     = sound_init();
 
+    sound_init(xorg.sounds);
     font_init("resources/font.ttf", &xorg.font);
 
     xcb_flush(xorg.connection);

@@ -42,7 +42,7 @@ void spawn_asteroids(global_t g, obj **asteroids)
     *asteroids = asteroid;
 }
 
-char update_asteroids(obj **asteroids, obj *shots, rectangle_t player, global_t g, double dt) 
+char update_asteroids(obj **asteroids, obj *shots, rectangle_t player, global_t *g, double dt) 
 {
     if (!*asteroids) 
         return 0;
@@ -55,7 +55,7 @@ char update_asteroids(obj **asteroids, obj *shots, rectangle_t player, global_t 
         else if (asteroid->entity.pos.y > VH || shot_collision(shots, asteroid->entity.pos))
         {
             if (asteroid->entity.pos.y < VH) 
-                sound_play(g.sounds, SOUND_BREAK);
+                sound_play(&g->sounds[SOUND_BREAK]);
             
             if (*asteroids == asteroid) 
             {

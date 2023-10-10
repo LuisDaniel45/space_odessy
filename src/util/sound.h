@@ -18,22 +18,16 @@ typedef struct {
     int data_size;
     void *file_data;
     int file_size;
+    int num_samples;
 } wav_file_info_t;
 
 typedef struct {
+    int pid;
     wav_file_info_t info;
-    int source;
-    int buffer;
-} sound_element_t;
+} sound_t;
 
-typedef struct {
-    void *context;
-    void *device;
-    sound_element_t sounds[SOUND_MAX];
-} sounds_t;
-
-int free_sound(sounds_t sound);
-void sound_play(sounds_t sound, enum sounds_enum i);
-void sound_pause(sounds_t sound, enum sounds_enum i);
-char isSoundPlaying(sounds_t sound, enum sounds_enum i);
-sounds_t sound_init();
+int sound_free(sound_t sound[]);
+int sound_play(sound_t *sound);
+void sound_kill(sound_t sound);
+int sound_is_alive(sound_t sound);
+int sound_init(sound_t *sound);

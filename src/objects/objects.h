@@ -25,7 +25,7 @@ char shot_collision(obj*, rectangle_t );
 #define ASTEROIDS_SPEED 300 
 void load_asteroids(global_t);
 void spawn_asteroids(global_t xorg, obj **asteroids);
-char update_asteroids(obj **, obj *, rectangle_t, global_t, double);
+char update_asteroids(obj **asteroids, obj *shots, rectangle_t player, global_t *g, double dt);
 void render_asteroids(obj *asteroids, v_window_t window);
 void unload_asteroids(obj *asteroids);
 

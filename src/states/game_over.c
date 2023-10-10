@@ -5,12 +5,12 @@ void game_over_state_load(global_t g)
     state_machine[cur_state].self = NULL;
 }
     
-void game_over_state_update(global_t g, double dt, int  *KeyDown[], int keypress)
+void game_over_state_update(global_t *g, double dt, int  *KeyDown[], int keypress)
 {
     if (keypress == KEY_r) 
     {
-        sound_play(g.sounds, SOUND_SELECT);
-        return change_state(g, STATE_PLAY);
+        sound_play(&g->sounds[SOUND_SELECT]);
+        return change_state(*g, STATE_PLAY);
     }
 }
 

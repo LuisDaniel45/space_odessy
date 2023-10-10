@@ -6,7 +6,7 @@ OBJECTS=src/objects/shots.c src/objects/asteroids.c
 
 SRC=src/main.c $(STATES) $(OBJECTS) $(UTIL)
 CC=gcc
-LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lopenal 
+LIBS=-lxcb -lm -lxcb-image -lxcb-shm -lasound 
 
 WIN_SRC=src/win.c $(UTIL) $(STATES) $(OBJECTS) 
 WIN_CC=x86_64-w64-mingw32-gcc

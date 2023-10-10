@@ -122,7 +122,6 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_SIZE:
-            g.window.height = HIWORD(lp); 
             if (!g.window.id)
                 break;
 

@@ -2,8 +2,9 @@
 #include <stdlib.h>
 
 #ifdef linux
-#include <AL/al.h>
-#include <AL/alc.h>
+#include <signal.h>
+#include <unistd.h>
+#include <alsa/asoundlib.h>
 #include <assert.h>
 #endif
 
@@ -18,95 +19,122 @@ char search_sequence(char *sequence, int sequence_size, char *buffer, int buffer
 int read_riff_chunk(wav_file_info_t *info);
 int read_fmt_subchunk(wav_file_info_t *info);
 int read_data_subchunk(wav_file_info_t *info);
+void sound_unload_file(sound_t sound);
 int load_wav_file(char *file, wav_file_info_t *info);
 
-int unload_sound_file(sound_element_t sound);
-sound_element_t load_sound_file(char *file);
-
 #ifdef linux
-int free_sound(sounds_t sound) 
-{
-    for (int i = 0; i < SOUND_MAX; i++) 
-        unload_sound_file(sound.sounds[i]);
-    alcMakeContextCurrent(NULL);
-    alcDestroyContext(sound.context);
-    alcCloseDevice(sound.device);
-    return 0;
-}
-
-int unload_sound_file(sound_element_t sound)
+void sound_unload_file(sound_t sound)
 {
     free(sound.info.file_data);
-    alDeleteSources(1, &sound.source);
-    alDeleteBuffers(1, &sound.buffer);
+}
+
+int sound_free(sound_t sound[]) 
+{
+    for (int i = 0; i < SOUND_MAX; i++) 
+    {
+        sound_kill(sound[i]);
+        sound_unload_file(sound[i]);
+    }
     return 0;
 }
 
-void sound_pause(sounds_t sound, enum sounds_enum i) 
+int sound_is_alive(sound_t sound) 
 {
-    return alSourcePause(sound.sounds[i].source);
+    return !waitpid(sound.pid, NULL, WNOHANG);
 }
 
-char isSoundPlaying(sounds_t sound, enum sounds_enum i)
+void sound_kill(sound_t sound) 
 {
-    int state; 
-    alGetSourcei(sound.sounds[i].source, AL_SOURCE_STATE, &state);
-    return (state == AL_PLAYING) ? 1: 0;
+    if (!sound.pid) 
+        return;
+    kill(sound.pid, SIGINT); 
 }
 
-void sound_play(sounds_t sound, enum sounds_enum i)
+snd_pcm_t *handle;
+void *global_sound;
+void signal_handle(int signal)
 {
-    return alSourcePlay(sound.sounds[i].source);
-}
-
-sound_element_t load_sound_file(char *file)
-{
-    sound_element_t sound; 
-    alGenSources((ALuint)1, &sound.source);
-
-    alSourcef(sound.source, AL_PITCH, 1);
-    alSourcef(sound.source, AL_GAIN, 1);
-    alSource3f(sound.source, AL_POSITION, 0, 0, 0);
-    alSource3f(sound.source, AL_VELOCITY, 0, 0, 0);
-    alSourcei(sound.source, AL_VELOCITY, AL_FALSE);
-
-    alGenBuffers((ALuint)1, &sound.buffer);
-
-    assert(load_wav_file(file, &sound.info) == 0);
-    ALenum format = AL_FORMAT_MONO8 + ((sound.info.num_channels - 1) * 2) + 
-                                      ((sound.info.bits_per_sample/8) - 1); 
-
-    alBufferData(sound.buffer, format, 
-                 sound.info.data, 
-                 sound.info.data_size, 
-                 sound.info.sample_rate);
-    alSourcei(sound.source, AL_BUFFER, sound.buffer);
-    return sound;
-}
-
-sounds_t sound_init()
-{
-    sounds_t sound;
-    sound.device = alcOpenDevice(NULL);
-    if (!sound.device) 
+    if (SIGINT == signal) 
     {
-        perror("Error: opening device\n");
+        sound_t sound = *(sound_t*) global_sound;
+        sound_unload_file(sound);
+        snd_pcm_drop(handle);
+        /** snd_pcm_close(handle); */
+        exit(1);
+    }
+}
+
+int sound_play(sound_t *sound)
+{
+    if (sound_is_alive(*sound)) 
+        sound_kill(*sound);
+
+    sound->pid = fork(); 
+    if (sound->pid < 0) 
+        return 1;
+
+    if (sound->pid) 
+        return 0;
+
+    global_sound = sound;
+    signal(SIGINT, signal_handle);
+
+    snd_pcm_hw_params_t *params;
+    if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
+    {
+        perror("Error: opening PCM device\n");
         exit(1);
     }
 
-    sound.context = alcCreateContext(sound.device, NULL);
-    if (!alcMakeContextCurrent(sound.context)) 
+    snd_pcm_hw_params_malloc(&params);
+    snd_pcm_hw_params_any(handle, params);
+    snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE);
+    snd_pcm_hw_params_set_channels(handle, params, sound->info.num_channels);
+
+    unsigned int rate = sound->info.sample_rate;
+    snd_pcm_hw_params_set_rate_near(handle, params, &rate, 0);
+
+    if (snd_pcm_hw_params(handle, params) < 0)
     {
-        perror("Error: setting context current\n");
+        perror("Error: opening PCM device\n");
         exit(1);
     }
 
-    sound.sounds[SOUND_LAUNCH]      = load_sound_file("resources/launch.wav");
-    sound.sounds[SOUND_SHOOT]       = load_sound_file("resources/shoot.wav");
-    sound.sounds[SOUND_BREAK]       = load_sound_file("resources/break.wav");
-    sound.sounds[SOUND_GAME_OVER]   = load_sound_file("resources/game_over.wav");
-    sound.sounds[SOUND_SELECT]      = load_sound_file("resources/select.wav");
-    return sound;
+    snd_pcm_hw_params_free(params);
+    snd_pcm_prepare(handle);
+
+    snd_pcm_writei(handle, sound->info.data, sound->info.num_samples);
+    snd_pcm_drain(handle);
+
+    sound_unload_file(*sound);
+    snd_pcm_close(handle);
+    exit(1);
+}
+
+int sound_init(sound_t *sound)
+{
+    if (load_wav_file("resources/launch.wav", 
+                      &sound[SOUND_LAUNCH].info)) 
+        ERR("Error: loading launch.wav file");
+
+    if (load_wav_file("resources/shoot.wav", 
+                      &sound[SOUND_SHOOT].info)) 
+        ERR("Error: loading shoot.vav file");
+
+    if (load_wav_file("resources/break.wav", 
+                       &sound[SOUND_BREAK].info)) 
+        ERR("Error: loading break.wav file");
+
+    if (load_wav_file("resources/game_over.wav",
+                      &sound[SOUND_GAME_OVER].info))
+        ERR("Error: loading game_over.wav file");
+
+
+    if (load_wav_file("resources/select.wav",
+                &sound[SOUND_SELECT].info))
+        ERR("Error: loading select.wav file");
+
 }
 #else
 
@@ -212,6 +240,7 @@ int read_data_subchunk(wav_file_info_t *info)
 
     info->data_size = *(int*)info->data;
     info->data += 4;
+    info->num_samples = info->data_size / (info->num_channels * (info->bits_per_sample/8));
 
     return 0;
 }

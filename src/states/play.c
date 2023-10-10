@@ -45,7 +45,7 @@ void play_state_load(global_t g)
     self->asteroids = NULL;
 }
 
-void play_state_update(global_t g, double dt, int *KeyDown[], int keypress)
+void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
 {
     char flags = 0;
     self_t *self = state_machine[cur_state].self;
@@ -65,13 +65,13 @@ void play_state_update(global_t g, double dt, int *KeyDown[], int keypress)
         flags |= PLAYER_TURN_LEFT;
     }
     change_skins(flags);
-    if (flags &= PLAYER_ACCELERATE) 
+    if (flags &= PLAYER_ACCELERATE)
     {
-       if (!isSoundPlaying(g.sounds, SOUND_LAUNCH))
-            sound_play(g.sounds, SOUND_LAUNCH);
+        if (!sound_is_alive(g->sounds[SOUND_LAUNCH])) 
+            sound_play(&g->sounds[SOUND_LAUNCH]);
     }
     else
-        sound_pause(g.sounds, SOUND_LAUNCH);
+        sound_kill(g->sounds[SOUND_LAUNCH]);
     
     
     switch (keypress) {
@@ -81,24 +81,24 @@ void play_state_update(global_t g, double dt, int *KeyDown[], int keypress)
 
         case KEY_space:
             shoot(&self->shots, self->player.pos);
-            sound_play(g.sounds, SOUND_SHOOT);
+            sound_play(&g->sounds[SOUND_SHOOT]);
             break;
     }
     self->player.pos.y = (int) round((double) self->player.pos.y  + dy);
     self->player.pos.x = (int) round((double) self->player.pos.x + dx);
 
     if (rand() % 100 == 0) 
-        spawn_asteroids(g, &self->asteroids);
+        spawn_asteroids(*g, &self->asteroids);
 
     update_shots(&self->shots, dt);
 
     if (update_asteroids(&self->asteroids, self->shots, self->player.pos, g, dt)) 
     {
-        sound_play(g.sounds, SOUND_GAME_OVER); 
+        sound_play(&g->sounds[SOUND_GAME_OVER]); 
         free_obj(self->shots);
         unload_asteroids(self->asteroids);
         color_free(self->shots_color, &g);
-        return change_state(g, STATE_GAME_OVER);
+        return change_state(*g, STATE_GAME_OVER);
     }
         
     if (self->player.pos.y < 0) 
