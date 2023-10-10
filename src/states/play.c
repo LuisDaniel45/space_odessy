@@ -51,17 +51,17 @@ void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
     char flags = 0;
     self_t *self = state_machine[cur_state].self;
     double dx = 0, dy = 0;
-    if (is_key_down(KeyDown, KEY_j))
+    if (is_key_down(KeyDown, KEY_down))
         dy = PLAYER_SPEED * dt;
-    else if (is_key_down(KeyDown, KEY_k)) {
+    else if (is_key_down(KeyDown, KEY_up)) {
         dy = -PLAYER_SPEED * dt;
         flags |= PLAYER_ACCELERATE;
     }
-    if (is_key_down(KeyDown, KEY_l)) {
+    if (is_key_down(KeyDown, KEY_right)) {
         dx = PLAYER_SPEED * dt;
         flags |= PLAYER_TURN_RIGHT;
     }
-    else if (is_key_down(KeyDown, KEY_h)) {
+    else if (is_key_down(KeyDown, KEY_left)) {
         dx = -PLAYER_SPEED * dt;
         flags |= PLAYER_TURN_LEFT;
     }
@@ -80,7 +80,7 @@ void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
             dy += GRAVITY * dt;
             break;
 
-        case KEY_space:
+        case KEY_shoot:
             shoot(&self->shots, self->player.pos);
             sound_play(&g->sounds[SOUND_SHOOT]);
             break;

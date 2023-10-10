@@ -25,14 +25,15 @@
 #define is_key_down(table, key)  ((*table[key]) >> 31)
 enum keys_t {
     KEY_unmap,
-    KEY_q,
-    KEY_h,
-    KEY_j,
-    KEY_k,
-    KEY_l,
-    KEY_space,
-    KEY_enter,
-    KEY_r,
+    KEY_quit,
+    KEY_left,
+    KEY_down,
+    KEY_up,
+    KEY_right,
+    KEY_shoot,
+    KEY_select,
+    KEY_retry,
+    KEY_b,
     KEY_MAX
 };
 
@@ -48,6 +49,7 @@ static int keys_table[] = {
     XK_space,
     XK_Return,
     XK_r,
+    XK_b
 };
 #else /* end of linux */
 
@@ -61,6 +63,7 @@ static int keys_table[] = {
     VK_SPACE,
     VK_RETURN,
     'R',
+    'B'
 };
 #endif /* end of WIN32 */
 

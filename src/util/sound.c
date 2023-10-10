@@ -141,6 +141,10 @@ int sound_init(sound_t *sound)
                 &sound[SOUND_SELECT].info))
         ERR("Error: loading select.wav file");
 
+    if (load_wav_file("resources/move.wav",
+                &sound[SOUND_MOVE].info))
+        ERR("Error: loading move.wav file");
+
 }
 #else
 int sound_is_alive(sound_t sound) 
@@ -213,6 +217,7 @@ int sound_init(sound_t *sound)
     sound[SOUND_BREAK]      = sound_load_file("resources/break.wav");
     sound[SOUND_GAME_OVER]  = sound_load_file("resources/game_over.wav");
     sound[SOUND_SELECT]     = sound_load_file("resources/select.wav");
+    sound[SOUND_MOVE]       = sound_load_file("resources/move.wav");
 }
 #endif 
 

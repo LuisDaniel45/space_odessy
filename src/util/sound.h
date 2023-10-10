@@ -5,6 +5,7 @@ enum  sounds_enum {
     SOUND_BREAK,
     SOUND_GAME_OVER,
     SOUND_SELECT,
+    SOUND_MOVE,
     SOUND_MAX
 }; 
 

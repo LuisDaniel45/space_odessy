@@ -3,6 +3,7 @@
 
 typedef enum {
     STATE_START,
+    STATE_CONFIG,
     STATE_PLAY,
     STATE_GAME_OVER 
 } states_id;
@@ -18,6 +19,10 @@ typedef struct {
 void start_state_load(global_t);
 void start_state_render(global_t);
 void start_state_update(global_t*, double, int*[], int);
+
+void config_state_load(global_t g);
+void config_state_render(global_t g);
+void config_state_update(global_t*, double , int*[], int);
 
 void play_state_load(global_t);
 void play_state_render(global_t);
@@ -37,6 +42,12 @@ static state_t state_machine[] = {
         .load = start_state_load, 
         .render = start_state_render, 
         .update = start_state_update
+    },
+    {
+        .id = STATE_CONFIG, 
+        .load = config_state_load, 
+        .render = config_state_render, 
+        .update = config_state_update
     },
     {
         .id = STATE_PLAY, 

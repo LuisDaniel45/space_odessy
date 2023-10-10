@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 
         start = end;
 
+        **KeyDown = 0;
         int keypress = 0;
         while ((event = xcb_poll_for_event(xorg.connection))) 
         {
@@ -92,7 +93,8 @@ int main(int argc, char *argv[])
                 case XCB_KEY_PRESS: {
                     xcb_key_press_event_t *keycode = event;
                     keypress = (short) keyboard[keycode->detail];
-                    if (keypress == KEY_q) 
+                    *keyboard = keycode->detail;
+                    if (keypress == KEY_quit) 
                         goto exit; 
                     key_pressed(keyboard, keycode->detail);
                     break;
@@ -167,10 +169,11 @@ int *map_keyboard(global_t xorg, int *KeyDown[])
     xcb_keysym_t* keysyms  = (xcb_keysym_t*)(keyboard_mapping + 1);  
                                                                              
     int *keyboard = malloc(sizeof(int) * xorg.setup->max_keycode);
+    *KeyDown = keyboard;
     for (int i = xorg.setup->min_keycode; i < xorg.setup->max_keycode; i++) {
         int keysym = keysyms[0 + (i - xorg.setup->min_keycode) * keyboard_mapping->keysyms_per_keycode];
         keyboard[i] = KEY_unmap;
-        for (int j = 0; j < KEY_MAX; j++) 
+        for (int j = 1; j < KEY_MAX; j++) 
             if (keysym == keys_table[j]) {
                 keyboard[i] = j;
                 KeyDown[j] = &keyboard[i];

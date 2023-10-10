@@ -24,6 +24,7 @@ int keypress;
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 {
     int *key_down[KEY_MAX];
+    *key_down = keyboard;
     for (int i = 0; i < KEY_MAX; i++)
     {
         key_down[i] = &keyboard[keys_table[i]];
@@ -63,6 +64,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
         time += end - start;
         start = end;
 
+        **key_down = 0;
         keypress = 0;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
@@ -112,6 +114,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             }
             key_pressed(keyboard, wp);
             keypress = (short) (keyboard[wp]); 
+            *keyboard = wp;
             break;
 
         case WM_KEYUP:

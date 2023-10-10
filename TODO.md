@@ -27,15 +27,15 @@
    - [x] Introduce Sound 
    - [x] Debug collision 
    - [x] Make sound table 
-   - [ ] Make Windows Version
-   - [ ] Refactor, test, and improve code 
-   - [ ] Make config menu 
-   - [ ] Make keys remapable 
+   - [x] Make Windows Version
+   - [x] Make keys remapable 
+   - [x] Make config menu 
    - [ ] Add a score board  
+   - [ ] Refactor, test, and improve code 
    - [ ] Make music for game
    - [ ] Make a mute for music 
    - [ ] Make Render parallel for efficiency 
-   - [ ] Upload to Github
+   - [x] Upload to Github
    - [ ] Make bundle to ship 
 
 
