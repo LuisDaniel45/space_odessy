@@ -11,6 +11,10 @@ typedef struct {
     obj *asteroids;
     obj *shots;
     color_t shots_color;
+    int spawn_time;
+    double spawn_interval;
+    int cool_down;
+    double spawn_count;
 } self_t;
 
 #define PLAYER_ACCELERATE  1
@@ -36,6 +40,11 @@ void play_state_load(global_t g)
     skins[4] = flip_image(skins[2]); 
     skins[5] = flip_image(skins[3]); 
 
+    self->cool_down = g.time;
+    self->spawn_time = g.time;
+    self->spawn_count = 1;
+    self->spawn_interval = 5;
+
     change_skins(0);
     self->player.pos.x = VW / 2;
     self->player.pos.y = VH - self->player.pos.height;
@@ -50,6 +59,7 @@ void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
 {
     char flags = 0;
     self_t *self = state_machine[cur_state].self;
+
     double dx = 0, dy = 0;
     if (is_key_down(KeyDown, KEY_down))
         dy = PLAYER_SPEED * dt;
@@ -81,6 +91,9 @@ void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
             break;
 
         case KEY_shoot:
+            if (g->time < self->cool_down) 
+                break;
+            self->cool_down = (0.5 * SECONDS) + g->time;
             shoot(&self->shots, self->player.pos);
             sound_play(&g->sounds[SOUND_SHOOT]);
             break;
@@ -88,8 +101,14 @@ void play_state_update(global_t *g, double dt, int *KeyDown[], int keypress)
     self->player.pos.y = (int) round((double) self->player.pos.y  + dy);
     self->player.pos.x = (int) round((double) self->player.pos.x + dx);
 
-    if (rand() % 100 == 0) 
-        spawn_asteroids(*g, &self->asteroids);
+    if (g->time > self->spawn_time)
+    {
+        self->spawn_time = (int)(self->spawn_interval * SECONDS) + g->time;
+        for (int i = 0; i < (int)self->spawn_count; i++) 
+            spawn_asteroids(*g, &self->asteroids);
+        self->spawn_count += 0.5;
+        self->spawn_interval -= 0.01;
+    }
 
     update_shots(&self->shots, dt);
 

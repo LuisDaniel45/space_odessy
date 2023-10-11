@@ -5,8 +5,6 @@
 #include "global.h"
 #include "states/states.h"
 
-#define SECONDS 1000
-#define BG_SPEED 100
 
 LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
 void global_init(HINSTANCE hInst);
@@ -62,6 +60,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 
         end = msg.time;
         time += end - start;
+        g.time += (int)time;
         start = end;
 
         **key_down = 0;
@@ -81,6 +80,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 
 void global_init(HINSTANCE hInst)
 {
+    g.score    = 0;
     g.window   = window_init(WindowProcedure, hInst, L"Space Odessy", VW * 1.6, VH * 1.6);
     g.bg       = background_init(g.window.hdc);
     g.textures = load_image("resources\\textures.png", 0, 0);

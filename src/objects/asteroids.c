@@ -1,4 +1,6 @@
 #include "objects.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 static image_t skin[MAX_SKINS];
 
@@ -26,7 +28,7 @@ void spawn_asteroids(global_t g, obj **asteroids)
     asteroid->entity.pos.height = (int) ptr_skin.height - ph;
     asteroid->entity.pos.width = (int) ptr_skin.width - pw;
     asteroid->entity.pos.x = rand() % (VW - asteroid->entity.pos.width);
-    asteroid->entity.pos.y = -asteroid->entity.pos.height;
+    asteroid->entity.pos.y = (int)-(rand() % VH);
     asteroid->entity.skin = ptr_skin; 
     asteroid->entity.x_offset = (int)pw - (pw / 4);
     asteroid->entity.y_offset = (int)ph - (ph / 4); 
@@ -55,7 +57,10 @@ char update_asteroids(obj **asteroids, obj *shots, rectangle_t player, global_t 
         else if (asteroid->entity.pos.y > VH || shot_collision(shots, asteroid->entity.pos))
         {
             if (asteroid->entity.pos.y < VH) 
+            {
+                g->score += 10;
                 sound_play(&g->sounds[SOUND_BREAK]);
+            }
             
             if (*asteroids == asteroid) 
             {

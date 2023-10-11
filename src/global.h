@@ -9,6 +9,7 @@
 
 #ifdef linux 
 
+#define SECONDS 1000000
 #include <sys/types.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -16,9 +17,12 @@
 #include <xcb/xcb_image.h>
 #else /* end of linux */
 
+#define SECONDS 1000
 #include <windows.h> 
 #include <wingdi.h>
 #endif /* end of WIN32 */
+
+#define BG_SPEED 100
 
 #define key_pressed(keyboard, keycode) keyboard[keycode] |= 1 << 31
 #define key_release(keyboard, keycode) keyboard[keycode] = (keyboard[keycode] << 1) >> 1
@@ -104,6 +108,8 @@ typedef struct {
     image_t textures;
     sound_t sounds[SOUND_MAX];
     font_t font;
+    int score; 
+    int time; 
 } global_t;
 
 
@@ -123,6 +129,8 @@ typedef struct {
     image_t textures;
     sound_t sounds[SOUND_MAX];
     font_t font;
+    int score; 
+    int time; 
 } global_t;
 
 #endif /* end of WIN32 */

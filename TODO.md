@@ -30,7 +30,7 @@
    - [x] Make Windows Version
    - [x] Make keys remapable 
    - [x] Make config menu 
-   - [ ] Add a score board  
+   - [x] Add a score board  
    - [ ] Refactor, test, and improve code 
    - [ ] Make music for game
    - [ ] Make a mute for music 

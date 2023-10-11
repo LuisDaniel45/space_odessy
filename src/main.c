@@ -8,9 +8,6 @@
 #include "global.h"
 #include "states/states.h"
 
-#define SECONDS 1000000
-#define BG_SPEED 100
-
 global_t global_init();
 void  free_global(global_t xorg);
 
@@ -60,6 +57,8 @@ int main(int argc, char *argv[])
 
         time += (((end.tv_sec - start.tv_sec) * SECONDS) +
                  (end.tv_usec - start.tv_usec));
+
+        xorg.time += (int)time;
 
         start = end;
 
@@ -135,6 +134,7 @@ void free_global(global_t xorg)
 global_t global_init()
 {
     global_t xorg; 
+    xorg.score      = 0;
     xorg.connection = xcb_connect(NULL, NULL);
     xorg.setup      = xcb_get_setup(xorg.connection);
     xorg.screen     = xcb_setup_roots_iterator(xorg.setup).data;
